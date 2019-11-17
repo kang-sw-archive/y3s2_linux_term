@@ -1,0 +1,6 @@
+[submodule "third/uEmbedded"]
+	path = third/uEmbedded
+	url = git@github.com:HappyNY/uEmbedded.git
+[submodule "third/fbg"]
+	path = third/fbg
+	url = git@github.com:grz0zrg/fbg.git
