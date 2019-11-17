@@ -16,13 +16,17 @@ int main(int argc, char *argv[])
 
     struct _fbg *fbg = fbg_setup("/dev/fb0", 0); // you can also directly use fbg_init(); for "/dev/fb0", last argument mean that will not use page flipping mechanism  for double buffering (it is actually slower on some devices!)
 
+    int i = 0;
+
     do
     {
         fbg_clear(fbg, 0); // can also be replaced by fbg_fill(fbg, 0, 0, 0);
 
         fbg_draw(fbg);
-
-        fbg_rect(fbg, fbg->width / 2 - 32, fbg->height / 2 - 32, 16, 16, 0, 255, 0);
+ 
+            /* code */
+        fbg_rect(fbg, i + fbg->width / 2 - 32, fbg->height / 2 - 32, 16, 16, 0, 255, 0);
+        i = (i + 1) % 100;
 
         fbg_pixel(fbg, fbg->width / 2, fbg->height / 2, 255, 0, 0);
 

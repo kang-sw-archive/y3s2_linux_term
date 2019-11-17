@@ -4,3 +4,6 @@
 [submodule "third/fbg"]
 	path = third/fbg
 	url = git@github.com:grz0zrg/fbg.git
+[submodule "third/tslib"]
+	path = third/tslib
+	url = git@github.com:libts/tslib.git

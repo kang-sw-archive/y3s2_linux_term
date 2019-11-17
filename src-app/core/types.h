@@ -1,6 +1,17 @@
 #pragma once
 #include "common.h"
 
+/*! \brief  Basic typeid which only defines its typename. 
+    \details  Must be located on the top of all managed object.
+ */
+struct BaseTypeID
+{
+    const char *TypeName; 
+};
+
+typedef struct BaseTypeID TYPEID;
+typedef struct BaseTypeID const *LPTYPEID;
+
 #define VEC2_TEMPLACE_TYPE(ty) \
     typedef struct vec2_##ty   \
     {                          \

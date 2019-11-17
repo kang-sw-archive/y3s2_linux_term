@@ -15,18 +15,21 @@ add_subdirectory(third)
 ## APP CONFIGURATION ##
 # -- Source code definitions
 aux_source_directory(src-app SRC_APP)
+aux_source_directory(src-app/arch SRC_ARCH)
 aux_source_directory(src-app/core SRC_CORE)
 
-link_libraries(m)
 set(FBG_SRC_DIR "${CMAKE_SOURCE_DIR}/third/fbg/src")
 set(FBG_SRC ${FBG_SRC_DIR}/fbgraphics.c ${FBG_SRC_DIR}/nanojpeg/nanojpeg.c ${FBG_SRC_DIR}/lodepng/lodepng.c)
 
+# General dependency
+link_libraries(m)
+
 # Executable
-add_executable(app ${SRC_APP} ${SRC_CORE} ${FBG_SRC})
+add_executable(app ${SRC_APP} ${SRC_CORE} ${FBG_SRC} ${SRC_ARCH})
 
 # Dependencies
 # -- uEmbedded
 add_dependencies(app uembedded_c)
 target_link_libraries(app PUBLIC uembedded_c)
-target_include_directories(app PUBLIC ${FBG_SRC_DIR})
+target_include_directories(app PUBLIC ${FBG_SRC_DIR} third/uEmbedded/src)
 # -- fbg

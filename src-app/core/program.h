@@ -5,15 +5,21 @@
 #include <string.h>
 #include "common.h"
 #include "types.h"
+#include "uEmbedded/priority_queue.h"
 
 //// APIs ////
 struct ProgramInstInitStruct {
     size_t NumMaxResource;
-    size_t RenderEventMPoolSize;
+    size_t RenderStringPoolSize;
+    size_t NumMaxDrawCall;
+    char const *FrameBufferDevFileName;
 };
 FHandle PInst_Create(struct ProgramInstInitStruct const* Init);
+FHandle PInst_Destroy(FHandle PInst);
 EStatus PInst_LoadImage(FHandle PInst, FHash Hash, char const *Path);
 struct Resource *PInst_GetResource(FHandle PInst, FHash Hash);
+
+EStatus PInst_Update(FHandle PInst, float DeltaTime);
 
 // Draw APIs
 /*! \brief              Notify ProgramInstance that queueing rendering events are done and readied to render output. Output screen will be refreshed as soon as all of the queue is processed.
@@ -38,20 +44,32 @@ enum
 /*! \brief Interfaces between hardware and software. */
 typedef struct ProgramInstance
 {
+    LPTYPEID id;
+
     // Frame buffer handle.
-    struct _fbg* hFB;
+    void* hFB;
     
     // Resource management
     struct Resource* arrResource;
     size_t NumResource;
     size_t NumMaxResource;
     
-    // Rendering event memory pool. Double buffered.
-    char* RenderEventMPool[2];
-    size_t PoolHeadIndex[2];
+    // Double buffered draw arg pool
     bool ActiveBuffer; // 0 or 1.
     
+    // Rendering event memory pool. Double buffered.
+    char* RenderStringPool[2];
+    size_t StringPoolHeadIndex[2];
+    size_t StringPoolMaxSize;
     
+    // Evenr argument memory pool
+    struct RenderEventArg *arrRenderEventArgPool[2];
+    size_t PoolHeadIndex[2];
+    size_t PoolMaxSize;
+    
+    // Priority queue for manage event objects
+    pqueue_t RenderEventQueue[2];
+
 } UProgramInstance;
 
 typedef enum
@@ -82,8 +100,10 @@ typedef enum
 /*! \brief Text rendering event data structure */
 struct RenderEventData_Text
 {
-    // Name of this argument will indicate string itself.
-    char d[4];
+    // Length of string
+    size_t StrLen;
+    // Name of this argument will indicate the string address.
+    char str[4];
 };
 
 struct RenderEventData_Polylines
@@ -111,10 +131,10 @@ typedef union {
     struct RenderEventData_IMAGE Image;
 } FRenderEventData;
 
-typedef struct 
+typedef struct RenderEventArg
 {
     int32_t Layer;
     ERenderEventType Type;
     FTransform2 Transform;
     FRenderEventData Data;
-} FRenderEvent;
+} FRenderEventArg;

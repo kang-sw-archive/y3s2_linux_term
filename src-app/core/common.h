@@ -14,10 +14,6 @@ enum
 typedef uint32_t FHash;
 
 // Handle type definition to detach user from implementation
-typedef struct handle
-{
-    const char *TypeId;
-    void *data;
-} FHandle;
+typedef void * FHandle;
 
 #define INVALID_HASH ((uint32_t)-1)
