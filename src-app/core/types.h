@@ -6,11 +6,19 @@
  */
 struct BaseTypeID
 {
-    const char *TypeName; 
+    const char *TypeName;
 };
 
 typedef struct BaseTypeID TYPEID;
 typedef struct BaseTypeID const *LPTYPEID;
+
+#define ASSIGN_TYPEID(TYPENAME, VTABLE_INSTANCE_NAME) LPTYPEID TYPEINFOPTR_##TYPENAME = &VTABLE_INSTANCE_NAME
+#define CHECK_TYPEID(RESULT_VARIABLE, INSTANCEPTR, TYPENAME)      \
+    {                                                             \
+        LPTYPEID *INST_PTR___ = (INSTANCEPTR);                    \
+        extern LPTYPEID TYPEINFOPTR_##TYPENAME;                   \
+        RESULT_VARIABLE = *INST_PTR___ == TYPEINFOPTR_##TYPENAME; \
+    }
 
 #define VEC2_TEMPLACE_TYPE(ty) \
     typedef struct vec2_##ty   \

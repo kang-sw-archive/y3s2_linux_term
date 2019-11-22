@@ -6,7 +6,7 @@
     
     \copyright Copyright (c) 2019. Seungwoo Kang. All rights reserved.
  */
-#include "../core/program.h" 
+#include "../core/program.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -19,22 +19,43 @@
 #include <stdbool.h>
 #include <signal.h>
 
-// Resource descriptor
-typedef struct 
+// -- Resource descriptors
+// Font descriptors
+typedef struct
 {
     char *fontFamily;
     cairo_font_slant_t slant;
     cairo_font_weight_t weight;
-} * rsrc_font_t;
+} rsrc_font_t;
 
-typedef struct 
+// Image descriptors
+typedef struct
 {
-    cairo_surface_t* screen;
-} * fb_t;
+    cairo_surface_t *image;
+} rsrc_img_t;
 
-void *PInst_InitFB(UProgramInstance* s, char const *fb)
+typedef struct
 {
-    cairo_linuxfb_surface_create(fb);
+    cairo_surface_t *screen;
+    void *backbuffer_memory[RENDERER_NUM_BUFFER];
+    cairo_surface_t *backbuffer[RENDERER_NUM_BUFFER];
+} program_cairo_wrapper_t;
+
+void *PInst_InitFB(UProgramInstance *s, char const *fb)
+{
+    program_cairo_wrapper_t *v = s->hFB;
+    v->screen = cairo_linuxfb_surface_create(fb);
+
+    size_t w = cairo_image_surface_get_width(v->screen);
+    size_t h = cairo_image_surface_get_height(v->screen);
+    size_t strd = cairo_image_surface_get_stride(v->screen);
+    size_t fmt = cairo_image_surface_get_format(v->screen);
+
+    for (size_t i = 0; i < RENDERER_NUM_BUFFER; i++)
+    {
+        v->backbuffer_memory[i] = malloc(h * strd);
+        v->backbuffer[i] = cairo_image_surface_create_for_data(v->backbuffer_memory[i], fmt, w, h, strd);
+    }
 }
 
 typedef struct _cairo_linuxfb_device

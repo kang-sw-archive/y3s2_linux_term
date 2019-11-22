@@ -22,12 +22,12 @@ int main(int argc, char *argv[])
 {
     signal(SIGINT, sigint_handler);
 
-    cairo_surface_t *surface; 
+    cairo_surface_t *surface;
     cairo_surface_t *fbsurf;
     void *surfaceBuff;
     cairo_t *cr;
     cairo_t *fbout;
-    
+
     fbsurf = cairo_linuxfb_surface_create(NULL);
     fbout = cairo_create(fbsurf);
 
@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
     cairo_format_t fmt = cairo_image_surface_get_format(fbsurf);
     surfaceBuff = malloc(bstride * bh);
     surface = cairo_image_surface_create_for_data(surfaceBuff, fmt, bw, bh, bstride);
-    
+
     cairo_select_font_face(cr, "serif", CAIRO_FONT_SLANT_NORMAL,
                            CAIRO_FONT_WEIGHT_BOLD);
     // cairo_set_font_size(cr, 32.0);
@@ -50,13 +50,13 @@ int main(int argc, char *argv[])
     cairo_surface_t *image = cairo_image_surface_create_from_png("../resource/rsrc.png");
     cairo_t *image_context = cairo_create(image);
     double angle = 0;
-    
+
     while (g_bRun)
     {
         cr = cairo_create(surface);
         void *data = cairo_image_surface_get_data(surface);
         memset(data, 0xff, buffSz);
-        
+
         cairo_set_source_rgb(cr, 1.0, 1, 1);
         cairo_move_to(cr, 0, 0);
         cairo_line_to(cr, 500, 100);
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
         cairo_rectangle(cr, 50, 0, 50, 50);
         cairo_set_source_rgba(cr, 0, 0, 1, 0.40);
         cairo_fill(cr);
-        
+
         int w = cairo_image_surface_get_width(image);
         int h = cairo_image_surface_get_height(image);
         // printf("image sz [%d %d]\n", w, h);
@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
 //         fbg_clear(fbg, 0); // can also be replaced by fbg_fill(fbg, 0, 0, 0);
 
 //         fbg_draw(fbg);
- 
+
 //             /* code */
 //         fbg_rect(fbg, i + fbg->width / 2 - 32, fbg->height / 2 - 32, 16, 16, 0, 255, 0);
 //         i = (i + 1) % 100;

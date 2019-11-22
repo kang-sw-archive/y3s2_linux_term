@@ -7,6 +7,23 @@
 #include "types.h"
 #include "uEmbedded/priority_queue.h"
 
+enum
+{
+    RENDERER_NUM_BUFFER = 2
+};
+
+static unsigned long
+hash_djb2(unsigned char *str)
+{
+    unsigned long hash = 5381;
+    int c;
+
+    while (c = *str++)
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+
+    return hash;
+}
+
 //// APIs ////
 struct ProgramInstInitStruct
 {
@@ -15,24 +32,31 @@ struct ProgramInstInitStruct
     size_t NumMaxDrawCall;
     char const *FrameBufferDevFileName;
 };
-FHandle PInst_Create(struct ProgramInstInitStruct const *Init);
-FHandle PInst_Destroy(FHandle PInst);
-EStatus PInst_LoadImage(FHandle PInst, FHash Hash, char const *Path);
-struct Resource *PInst_GetResource(FHandle PInst, FHash Hash);
 
-EStatus PInst_Update(FHandle PInst, float DeltaTime);
+struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init);       // @todo
+struct ProgramInstance *PInst_Destroy(struct ProgramInstance *PInst);                 // @todo
+EStatus PInst_LoadImage(struct ProgramInstance *PInst, FHash Hash, char const *Path); // @todo
+struct Resource *PInst_GetResource(struct ProgramInstance *PInst, FHash Hash);        // @todo
+void PInst_ReleaseResource(struct ProgramInstance *PInst);                            // @todo
+EStatus PInst_Update(struct ProgramInstance *PInst, float DeltaTime);                 // @todo
 
 // Draw APIs
 /*! \brief              Notify ProgramInstance that queueing rendering events are done and readied to render output. Output screen will be refreshed as soon as all of the queue is processed.
     \param CamTransform Camera transform to apply.
     \return             STATUS_OK if succeed, else if failed.
  */
-EStatus PInst_RequestFlipBuffer(FHandle PInst, FTransform2 const *CamTransform);
+EStatus PInst_Flip(struct ProgramInstance *PInst, FTransform2 const *CamTransform);
 
-EStatus PInst_RQueueText(FHandle PInst, FTransform2 const *Tr, struct Resource *Font, char const *String);
-EStatus PInst_RQueuePolygon(FHandle PInst, FTransform2 const *Tr, struct Resource *Vect, uint32_t rgba);
-EStatus PInst_RQueueRect(FHandle PInst, FTransform2 const *Tr, FVec2int v0, FVec2int v1, uint32_t rgba);
-EStatus PInst_RQueueImage(FHandle PInst, FTransform2 const *Tr, struct Resource *Image);
+EStatus PInst_RQueueText(struct ProgramInstance *PInst, FTransform2 const *Tr, struct Resource *Font, char const *String);
+EStatus PInst_RQueuePolygon(struct ProgramInstance *PInst, FTransform2 const *Tr, struct Resource *Vect, uint32_t rgba);
+EStatus PInst_RQueueRect(struct ProgramInstance *PInst, FTransform2 const *Tr, FVec2int v0, FVec2int v1, uint32_t rgba);
+EStatus PInst_RQueueImage(struct ProgramInstance *PInst, FTransform2 const *Tr, struct Resource *Image);
+
+// Library Dependent Code
+void *PInst_InitFB(struct ProgramInstance *Inst, char const *fb);
+void *PInst_DeinitFB(struct PrgoramInstance *Inst);                          // @todo.
+void *PInst_LoadImgInternal(struct ProgramInstance *Inst, char const *Path); // @todo.
+void *PInst_FreeAllResource(struct Resource *rsrc);                          // @todo.
 
 //! Program status
 enum
@@ -56,20 +80,20 @@ typedef struct ProgramInstance
     size_t NumMaxResource;
 
     // Double buffered draw arg pool
-    bool ActiveBuffer; // 0 or 1.
+    int ActiveBuffer; // 0 or 1.
 
     // Rendering event memory pool. Double buffered.
-    char *RenderStringPool[2];
-    size_t StringPoolHeadIndex[2];
+    char *RenderStringPool[RENDERER_NUM_BUFFER];
+    size_t StringPoolHeadIndex[RENDERER_NUM_BUFFER];
     size_t StringPoolMaxSize;
 
     // Evenr argument memory pool
-    struct RenderEventArg *arrRenderEventArgPool[2];
-    size_t PoolHeadIndex[2];
+    struct RenderEventArg *arrRenderEventArgPool[RENDERER_NUM_BUFFER];
+    size_t PoolHeadIndex[RENDERER_NUM_BUFFER];
     size_t PoolMaxSize;
 
     // Priority queue for manage event objects
-    pqueue_t RenderEventQueue[2];
+    pqueue_t RenderEventQueue[RENDERER_NUM_BUFFER];
 
 } UProgramInstance;
 

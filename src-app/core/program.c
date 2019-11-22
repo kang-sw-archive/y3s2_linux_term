@@ -1,8 +1,47 @@
 #include "program.h"
+#include "uEmbedded/algorithm.h"
 
 static TYPEID const PInstTypeID = {.TypeName = "ProgramInstance"};
+ASSIGN_TYPEID(UProgramInstance, PInstTypeID);
 
-void *PInst_InitFB(char const *fb);
+static int resource_eval_func(void const *eval, void const *elem)
+{
+}
+static struct Resource *pinst_resource_new(UProgramInstance *s, FHash hash)
+{
+    uassert(s);
+    uassert(s->NumResource < s->NumMaxResource);
+
+    // Find place to insert
+    size_t idx = lowerbound(s->arrResource, &hash, sizeof(struct Resource), s->NumResource, resource_eval_func);
+
+    // If any resource with same hash already exists ...
+    if (idx < s->NumResource && s->arrResource[idx].Hash == hash)
+        return NULL;
+
+    struct Resource *resource = array_insert(
+        s->arrResource,
+        NULL,
+        idx,
+        sizeof(struct Resource),
+        &s->NumResource);
+
+    resource->Hash = hash;
+    return;
+}
+
+EStatus PInst_LoadImage(struct ProgramInstance *PInst, FHash Hash, char const *Path)
+{
+}
+
+static struct Resource *pinst_resource_find(UProgramInstance *s, FHash hash)
+{
+    size_t idx = lowerbound(s->arrResource, &hash, sizeof(struct Resource), s->NumResource, resource_eval_func);
+    if (idx > s->NumResource)
+        return NULL;
+    struct Resource *ret = s->arrResource + idx;
+    return ret->Hash == hash ? ret : NULL;
+}
 
 static int RenderEventArg_Predicate(void const *va, void const *vb)
 {
@@ -12,7 +51,7 @@ static int RenderEventArg_Predicate(void const *va, void const *vb)
     return a->Layer - b->Layer;
 }
 
-FHandle PInst_Create(struct ProgramInstInitStruct const *Init)
+struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init)
 {
     // Init as zero.
     UProgramInstance *inst = calloc(1, sizeof(UProgramInstance));
@@ -43,12 +82,12 @@ FHandle PInst_Create(struct ProgramInstInitStruct const *Init)
     }
 
     // Initialize Renderer Thread
+
     // @todo.
     return inst;
 }
 
-static void RenderThread(void* VPInst)
+static void RenderThread(void *VPInst)
 {
     UProgramInstance *inst = VPInst;
-    
 }
