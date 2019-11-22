@@ -1,8 +1,9 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "program.h"
 #include "uEmbedded/algorithm.h"
 
-static TYPEID const PInstTypeID = {.TypeName = "ProgramInstance"};
+static TYPEID const PInstTypeID = {.TypeName = "ProgramInstance" };
 ASSIGN_TYPEID(UProgramInstance, PInstTypeID);
 
 static int resource_eval_func(void const *veval, void const *velem)

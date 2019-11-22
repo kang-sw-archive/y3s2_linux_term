@@ -76,30 +76,77 @@ enum {
  */
 EStatus PInst_LoadResource(struct ProgramInstance *PInst, EResourceType Type, FHash Hash, char const *Path, LOADRESOURCE_FLAG_T Flag);
 
-/*! \brief 
+/*! \brief Find resource by Hash. Returns NULL if no resource exists for given hash.
     \param PInst 
     \param Hash 
-    \param Path 
     \return 
  */
-EStatus PInst_LoadFont(struct ProgramInstance* PInst, FHash Hash, char const* Path); 
-struct Resource *PInst_GetResource(struct ProgramInstance *PInst, FHash Hash); // @todo
+struct Resource *PInst_GetResource(struct ProgramInstance *PInst, FHash Hash);
+
+//! Will not be implemented for this project.
 void PInst_ReleaseResource(struct ProgramInstance *PInst);                     // @todo
+
+/*! \brief Update program instance
+    \param PInst 
+    \param DeltaTime Delta time in seconds.
+    \return Current system status. Returns non-zero value for warnings/errors.
+ */
 EStatus PInst_Update(struct ProgramInstance *PInst, float DeltaTime);          // @todo
 
 // Draw APIs
-/*! \brief              Notify ProgramInstance that queueing rendering events are done and readied to render output. Output screen will be refreshed as soon as all of the queue is processed.
+/*! \brief   Request draw.           
     \param CamTransform Camera transform to apply.
-    \return             STATUS_OK if succeed, else if failed.
+    \return STATUS_OK if succeed, else if failed.
+    \details 
+        Notify ProgramInstance that queueing rendering events are done and readied to render output. Output screen will be refreshed as soon as all of the queue is processed.
  */
 EStatus PInst_Flip(struct ProgramInstance *PInst, FTransform2 const *CamTransform);
 
-EStatus PInst_RQueueText(struct ProgramInstance *PInst, FTransform2 const *Tr, struct Resource *Font, char const *String);
-EStatus PInst_RQueuePolygon(struct ProgramInstance *PInst, FTransform2 const *Tr, struct Resource *Vect, uint32_t rgba);
-EStatus PInst_RQueueRect(struct ProgramInstance *PInst, FTransform2 const *Tr, FVec2int v0, FVec2int v1, uint32_t rgba);
+//! Color descriptor for draw call
+typedef struct Color {
+    float A;
+    float R;
+    float G;
+    float B;
+} FColor;
+
+typedef  struct Color const  *COLORREF;
+
+/*! \brief Queue string rendering
+    \param PInst 
+    \param Tr Transform
+    \param Font Font resource data
+    \param String String to output. Will be copied.
+    \param 
+    \return Request result.
+ */
+EStatus PInst_RQueueText(
+    struct ProgramInstance *PInst,
+    FTransform2 const *Tr,
+    struct Resource *Font,
+    char const *String,
+    COLORREF rgba);
+
+//! Will not be implemented.
+EStatus PInst_RQueuePolygon(struct ProgramInstance *PInst, FTransform2 const *Tr, struct Resource *Vect, COLORREF rgba);
+
+/*! \brief Queue filled rectangle rendering
+    \param Tr   Transform of ractangle.
+    \param pos  Base position of ractangle.
+    \param size Size of ractangle
+    \return 
+ */
+EStatus PInst_RQueueRect(struct ProgramInstance *PInst, FTransform2 const *Tr, FVec2int ofst, FVec2int size, COLORREF rgba);
+
+/*! \brief Queue image draw call.
+    \param PInst 
+    \param Tr 
+    \param Image 
+    \return 
+ */
 EStatus PInst_RQueueImage(struct ProgramInstance *PInst, FTransform2 const *Tr, struct Resource *Image);
 
-// Library Dependent Code
+// For library implementations
 void Internal_PInst_InitFB(struct ProgramInstance *Inst, char const *fb);
 void Internal_PInst_DeinitFB(struct ProgramInstance *Inst);                           // @todo.
 void *Internal_PInst_LoadImgInternal(struct ProgramInstance *Inst, char const *Path); // @todo.
@@ -179,6 +226,7 @@ struct RenderEventData_Text
     size_t StrLen;
     // Name of this argument will indicate the string address.
     char str[4];
+    uint8_t rgba[4];
 };
 
 struct RenderEventData_Polylines

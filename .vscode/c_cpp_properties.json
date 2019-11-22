@@ -2,7 +2,9 @@
     "configurations": [
         {
             "name": "Linux",
-            "defines": [],
+            "defines": [
+                "__x86_64__"
+            ],
             "compilerPath": "/usr/bin/clang",
             "cStandard": "c11",
             "cppStandard": "c++17",
@@ -10,10 +12,11 @@
             "includePath": [
                 "${workspaceRoot}/third/fbg/src",
                 "${workspaceRoot}/third/uEmbedded/src",
-                "${workspaceRoot}/third/cairo/include"
-            ],
-            "compileCommands": "${workspaceFolder}/build/compile_commands.json",
-            "configurationProvider": "vector-of-bool.cmake-tools"
+                "${workspaceRoot}/third/cairo/include",
+                "C:/Links/includes",
+                "C:/Links/includes/linux",
+                "C:/Links/includes/gcc"
+            ]
         }
     ],
     "version": 4
