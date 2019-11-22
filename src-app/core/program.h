@@ -18,6 +18,7 @@ enum
 
 //! \brief Resource Type indicator.
 typedef uint32_t EResourceType;
+typedef struct ProgramInstance UProgramInstance;
 
 //! \brief Primarily used hash function for all string indicators.
 static unsigned long
@@ -101,7 +102,7 @@ EStatus PInst_Update(struct ProgramInstance *PInst, float DeltaTime);
     \details 
         Notify ProgramInstance that queueing rendering events are done and readied to render output. Output screen will be refreshed as soon as all of the queue is processed.
  */
-EStatus PInst_Flip(struct ProgramInstance *PInst, FTransform2 const *CamTransform);
+EStatus PInst_Flip(struct ProgramInstance *PInst);
 
 //! Color descriptor for draw call
 typedef struct Color
@@ -166,39 +167,6 @@ enum
     RENDERER_BUSY = 1,
     ERROR_RENDERER_INVALID = -1
 };
-
-/*! \brief Interfaces between hardware and software. */
-typedef struct ProgramInstance
-{
-    LPTYPEID id;
-
-    // Frame buffer handle. Also used to trigger thread shutdown.
-    void *hFB;
-
-    // Resource management
-    struct Resource *arrResource;
-    size_t NumResource;
-    size_t NumMaxResource;
-
-    // Double buffered draw arg pool
-    int ActiveBuffer; // 0 or 1.
-
-    // Rendering event memory pool. Double buffered.
-    char *RenderStringPool[RENDERER_NUM_BUFFER];
-    size_t StringPoolHeadIndex[RENDERER_NUM_BUFFER];
-    size_t StringPoolMaxSize;
-
-    // Evenr argument memory pool
-    struct RenderEventArg *arrRenderEventArgPool[RENDERER_NUM_BUFFER];
-    size_t PoolHeadIndex[RENDERER_NUM_BUFFER];
-    size_t PoolMaxSize;
-
-    // Priority queue for manage event objects
-    pqueue_t arrRenderEventQueue[RENDERER_NUM_BUFFER];
-
-    // Thread handle of rendering thread
-    pthread_t ThreadHandle;
-} UProgramInstance;
 
 enum
 {

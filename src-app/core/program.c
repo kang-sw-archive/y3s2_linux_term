@@ -1,7 +1,55 @@
+/*! \brief
+    \file program.c
+    \author Seungwoo Kang (ki6080@gmail.com)
+    \version 0.1
+    \date 2019-11-23
+    
+    \copyright Copyright (c) 2019. Seungwoo Kang. All rights reserved.
+    
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include "program.h"
 #include "uEmbedded/algorithm.h"
+
+/*! \brief Interfaces between hardware and software. */
+struct ProgramInstance
+{
+    LPTYPEID id;
+
+    // Frame buffer handle. Also used to trigger thread shutdown.
+    void *hFB;
+
+    // Resource management
+    struct Resource *arrResource;
+    size_t NumResource;
+    size_t NumMaxResource;
+
+    // Double buffered draw arg pool
+    int ActiveBuffer; // 0 or 1.
+
+    // Camera transform for active buff. Immutable for one frame.
+    FTransform2 ActiveBufferCamera;
+
+    // Camera tranform for next frame.
+    FTransform2 PendingCameraTransform;
+
+    // Rendering event memory pool. Double buffered.
+    char *RenderStringPool[RENDERER_NUM_BUFFER];
+    size_t StringPoolHeadIndex[RENDERER_NUM_BUFFER];
+    size_t StringPoolMaxSize;
+
+    // Evenr argument memory pool
+    struct RenderEventArg *arrRenderEventArgPool[RENDERER_NUM_BUFFER];
+    size_t PoolHeadIndex[RENDERER_NUM_BUFFER];
+    size_t PoolMaxSize;
+
+    // Priority queue for manage event objects
+    pqueue_t arrRenderEventQueue[RENDERER_NUM_BUFFER];
+
+    // Thread handle of rendering thread
+    pthread_t ThreadHandle;
+};
 
 static TYPEID const PInstTypeID = {.TypeName = "ProgramInstance"};
 ASSIGN_TYPEID(UProgramInstance, PInstTypeID);

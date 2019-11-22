@@ -80,9 +80,6 @@ int main(int argc, char *argv[])
         // Global Timer Handler.
         // @todo.
 
-        // Input Event Handler.
-        // @todo.
-
         // Update program instance.
         PInst_Update(program, DESIRED_DELTA_TIME);
 
