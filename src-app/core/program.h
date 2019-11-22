@@ -150,7 +150,7 @@ EStatus PInst_RQueueImage(struct ProgramInstance *PInst, FTransform2 const *Tr, 
 
 // For library implementations
 void Internal_PInst_InitFB(struct ProgramInstance *Inst, char const *fb);
-void Internal_PInst_DeinitFB(struct ProgramInstance *Inst); // @todo.
+void Internal_PInst_DeinitFB(struct ProgramInstance *Inst, void *hFB); // @todo.
 void *Internal_PInst_LoadImgInternal(struct ProgramInstance *Inst, char const *Path);
 void *Internal_PInst_LoadFont(struct ProgramInstance *Inst, char const *Path, LOADRESOURCE_FLAG_T FontFlag);
 void *Internal_PInst_FreeAllResource(struct Resource *rsrc); // @todo.

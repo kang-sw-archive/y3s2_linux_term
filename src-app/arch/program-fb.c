@@ -56,9 +56,9 @@ void Internal_PInst_InitFB(UProgramInstance *s, char const *fb)
     s->hFB = v;
 }
 
-void Internal_PInst_DeinitFB(struct ProgramInstance *Inst)
+void Internal_PInst_DeinitFB(struct ProgramInstance *Inst, void *hFB)
 {
-    program_cairo_wrapper_t *v = Inst->hFB;
+    program_cairo_wrapper_t *v = hFB;
     for (size_t i = 0; i < RENDERER_NUM_BUFFER; i++)
     {
         cairo_surface_destroy(v->backbuffer[i]);

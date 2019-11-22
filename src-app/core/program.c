@@ -187,10 +187,11 @@ EStatus PInst_Update(struct ProgramInstance *PInst, float DeltaTime)
 
 void PInst_Destroy(struct ProgramInstance *PInst)
 {
+    void *hFB = PInst->hFB;
     PInst->hFB = NULL;
 
     pthread_join(PInst->ThreadHandle, NULL);
-    Internal_PInst_DeinitFB(PInst);
+    Internal_PInst_DeinitFB(PInst, hFB);
 
     logprintf("Successfully destroied.\n");
 }
