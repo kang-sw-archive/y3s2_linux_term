@@ -14,7 +14,7 @@
 #include <time.h>
 #include <sys/time.h>
 
-#define DESIRED_DELTA_TIME (1.0f / 30.0f)
+#define DESIRED_DELTA_TIME (1.0 / 30.0)
 static bool g_bRun = true;
 static double g_TimeInSeconds;
 
@@ -72,9 +72,9 @@ int main(int argc, char *argv[])
         {
             gettimeofday(&tv, NULL);
             curtime = time_100usec_to_sec(time_in_100usec(&tv));
-            prev_tick = curtime;
             pthread_yield(NULL);
         }
+        prev_tick = curtime;
         g_TimeInSeconds = curtime;
 
         // Global Timer Handler.
