@@ -135,7 +135,7 @@ static void RenderThread(void *VPInst)
     logprintf("Thread has been initialized. \n");
 }
 
-struct ProgramInstance *PInst_Destroy(struct ProgramInstance *PInst)
+void PInst_Destroy(struct ProgramInstance *PInst)
 {
     Internal_PInst_DeinitFB(PInst);
     PInst->hFB = NULL;
