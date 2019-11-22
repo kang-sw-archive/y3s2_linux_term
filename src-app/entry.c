@@ -25,6 +25,7 @@ double GetTimeInSeconds()
 
 void sigint_handler(int signo)
 {
+    logprintf("SIG %d RECV\n", signo);
     g_bRun = false;
 }
 
@@ -40,7 +41,11 @@ static inline double time_100usec_to_sec(uint64_t usec)
 
 int main(int argc, char *argv[])
 {
+    signal(SIGABRT, sigint_handler);
     signal(SIGINT, sigint_handler);
+    signal(SIGKILL, sigint_handler);
+    signal(SIGQUIT, sigint_handler);
+    signal(SIGSTOP, sigint_handler);
 
     UProgramInstance *program;
     {
