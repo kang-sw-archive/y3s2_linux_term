@@ -128,6 +128,7 @@ struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init)
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_create(&inst->ThreadHandle, &attr, RenderThread, inst);
+    pthread_attr_destroy(&attr);
 
     logprintf("Program has been initialized successfully.\n");
 
@@ -138,12 +139,20 @@ static void *RenderThread(void *VPInst)
 {
     UProgramInstance *inst = VPInst;
 
+    if (inst == NULL)
+    {
+        logprintf("Invalid argument has delievered.\n");
+        return;
+    }
+
+    logprintf("Thread verify . . . typename of input argument: %s\n", inst->id->TypeName);
+    logprintf("hFB is %p\n", inst->hFB);
     logprintf("Thread has been successfully initialized. \n");
     int ActiveIdx = inst->ActiveBuffer;
     void *hFB = inst->hFB;
 
     // hFB is escape trigger.
-    while (inst->hFB == NULL)
+    while (inst->hFB != NULL)
     {
         // Wait until flip request.
         // This is notified via switching active buffer index value.
