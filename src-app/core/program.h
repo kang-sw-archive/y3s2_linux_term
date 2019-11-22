@@ -12,6 +12,11 @@ enum
     RENDERER_NUM_BUFFER = 2
 };
 
+enum{
+    STATUS_RESOURCE_ALREADY_EXIST = 1,
+    ERROR_INVALID_RESOURCE_PATH = -1,
+};
+
 static unsigned long
 hash_djb2(unsigned char *str)
 {
@@ -33,12 +38,13 @@ struct ProgramInstInitStruct
     char const *FrameBufferDevFileName;
 };
 
-struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init);       // @todo
-struct ProgramInstance *PInst_Destroy(struct ProgramInstance *PInst);                 // @todo
-EStatus PInst_LoadImage(struct ProgramInstance *PInst, FHash Hash, char const *Path); // @todo
-struct Resource *PInst_GetResource(struct ProgramInstance *PInst, FHash Hash);        // @todo
-void PInst_ReleaseResource(struct ProgramInstance *PInst);                            // @todo
-EStatus PInst_Update(struct ProgramInstance *PInst, float DeltaTime);                 // @todo
+struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init); // @todo
+struct ProgramInstance *PInst_Destroy(struct ProgramInstance *PInst);           // @todo
+EStatus PInst_LoadImage(struct ProgramInstance *PInst, FHash Hash, char const *Path);
+EStatus PInst_LoadFont(struct ProgramInstance* PInst, FHash Hash, char const* Path); 
+struct Resource *PInst_GetResource(struct ProgramInstance *PInst, FHash Hash); // @todo
+void PInst_ReleaseResource(struct ProgramInstance *PInst);                     // @todo
+EStatus PInst_Update(struct ProgramInstance *PInst, float DeltaTime);          // @todo
 
 // Draw APIs
 /*! \brief              Notify ProgramInstance that queueing rendering events are done and readied to render output. Output screen will be refreshed as soon as all of the queue is processed.
@@ -53,10 +59,10 @@ EStatus PInst_RQueueRect(struct ProgramInstance *PInst, FTransform2 const *Tr, F
 EStatus PInst_RQueueImage(struct ProgramInstance *PInst, FTransform2 const *Tr, struct Resource *Image);
 
 // Library Dependent Code
-void *PInst_InitFB(struct ProgramInstance *Inst, char const *fb);
-void *PInst_DeinitFB(struct PrgoramInstance *Inst);                          // @todo.
-void *PInst_LoadImgInternal(struct ProgramInstance *Inst, char const *Path); // @todo.
-void *PInst_FreeAllResource(struct Resource *rsrc);                          // @todo.
+void Internal_PInst_InitFB(struct ProgramInstance *Inst, char const *fb);
+void Internal_PInst_DeinitFB(struct PrgoramInstance *Inst);                           // @todo.
+void *Internal_PInst_LoadImgInternal(struct ProgramInstance *Inst, char const *Path); // @todo.
+void *Internal_PInst_FreeAllResource(struct Resource *rsrc);                          // @todo.
 
 //! Program status
 enum
@@ -104,13 +110,13 @@ typedef enum
     RESOURCE_FONT
 } EResourceType;
 
-struct Resource
+typedef struct Resource
 {
     /* data */
     uint32_t Hash;
     EResourceType Type;
     void *data;
-};
+} UResource;
 
 /*! \brief Type of rendering event. */
 typedef enum

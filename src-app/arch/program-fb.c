@@ -29,10 +29,7 @@ typedef struct
 } rsrc_font_t;
 
 // Image descriptors
-typedef struct
-{
-    cairo_surface_t *image;
-} rsrc_img_t;
+typedef cairo_surface_t *rsrc_img_t;
 
 typedef struct
 {
@@ -41,9 +38,11 @@ typedef struct
     cairo_surface_t *backbuffer[RENDERER_NUM_BUFFER];
 } program_cairo_wrapper_t;
 
-void *PInst_InitFB(UProgramInstance *s, char const *fb)
+static cairo_surface_t *cairo_linuxfb_surface_create(const char *fb_name);
+
+void Internal_PInst_InitFB(UProgramInstance *s, char const *fb)
 {
-    program_cairo_wrapper_t *v = s->hFB;
+    program_cairo_wrapper_t *v = malloc(sizeof(program_cairo_wrapper_t));
     v->screen = cairo_linuxfb_surface_create(fb);
 
     size_t w = cairo_image_surface_get_width(v->screen);
@@ -56,6 +55,19 @@ void *PInst_InitFB(UProgramInstance *s, char const *fb)
         v->backbuffer_memory[i] = malloc(h * strd);
         v->backbuffer[i] = cairo_image_surface_create_for_data(v->backbuffer_memory[i], fmt, w, h, strd);
     }
+
+    s->hFB = v;
+}
+
+void *Internal_PInst_LoadImgInternal(struct ProgramInstance *Inst, char const *Path)
+{
+    // Check if file exists.
+    FILE *fp = fopen(Path, "r");
+    if (fp == NULL)
+        return;
+
+    fclose(fp);
+    return cairo_image_surface_create_from_png(Path);
 }
 
 typedef struct _cairo_linuxfb_device
@@ -80,7 +92,7 @@ static void cairo_linuxfb_surface_destroy(void *device)
     free(dev);
 }
 
-cairo_surface_t *cairo_linuxfb_surface_create(const char *fb_name)
+static cairo_surface_t *cairo_linuxfb_surface_create(const char *fb_name)
 {
     cairo_linuxfb_device_t *device;
     cairo_surface_t *surface;
