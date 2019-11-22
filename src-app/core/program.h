@@ -8,13 +8,14 @@
 #include "uEmbedded/priority_queue.h"
 
 //// APIs ////
-struct ProgramInstInitStruct {
+struct ProgramInstInitStruct
+{
     size_t NumMaxResource;
     size_t RenderStringPoolSize;
     size_t NumMaxDrawCall;
     char const *FrameBufferDevFileName;
 };
-FHandle PInst_Create(struct ProgramInstInitStruct const* Init);
+FHandle PInst_Create(struct ProgramInstInitStruct const *Init);
 FHandle PInst_Destroy(FHandle PInst);
 EStatus PInst_LoadImage(FHandle PInst, FHash Hash, char const *Path);
 struct Resource *PInst_GetResource(FHandle PInst, FHash Hash);
@@ -28,7 +29,7 @@ EStatus PInst_Update(FHandle PInst, float DeltaTime);
  */
 EStatus PInst_RequestFlipBuffer(FHandle PInst, FTransform2 const *CamTransform);
 
-EStatus PInst_RQueueText(FHandle PInst, FTransform2 const* Tr, struct Resource *Font, char const *String);
+EStatus PInst_RQueueText(FHandle PInst, FTransform2 const *Tr, struct Resource *Font, char const *String);
 EStatus PInst_RQueuePolygon(FHandle PInst, FTransform2 const *Tr, struct Resource *Vect, uint32_t rgba);
 EStatus PInst_RQueueRect(FHandle PInst, FTransform2 const *Tr, FVec2int v0, FVec2int v1, uint32_t rgba);
 EStatus PInst_RQueueImage(FHandle PInst, FTransform2 const *Tr, struct Resource *Image);
@@ -47,26 +48,26 @@ typedef struct ProgramInstance
     LPTYPEID id;
 
     // Frame buffer handle.
-    void* hFB;
-    
+    void *hFB;
+
     // Resource management
-    struct Resource* arrResource;
+    struct Resource *arrResource;
     size_t NumResource;
     size_t NumMaxResource;
-    
+
     // Double buffered draw arg pool
     bool ActiveBuffer; // 0 or 1.
-    
+
     // Rendering event memory pool. Double buffered.
-    char* RenderStringPool[2];
+    char *RenderStringPool[2];
     size_t StringPoolHeadIndex[2];
     size_t StringPoolMaxSize;
-    
+
     // Evenr argument memory pool
     struct RenderEventArg *arrRenderEventArgPool[2];
     size_t PoolHeadIndex[2];
     size_t PoolMaxSize;
-    
+
     // Priority queue for manage event objects
     pqueue_t RenderEventQueue[2];
 
@@ -88,12 +89,12 @@ struct Resource
 };
 
 /*! \brief Type of rendering event. */
-typedef enum 
+typedef enum
 {
-    ERET_NONE = 0,  // Nothing
-    ERET_TEXT,      // Text
-    ERET_POLY,      // Empty Polygon
-    ERET_RECT,       // Filled Rectangle
+    ERET_NONE = 0, // Nothing
+    ERET_TEXT,     // Text
+    ERET_POLY,     // Empty Polygon
+    ERET_RECT,     // Filled Rectangle
     ERET_IMAGE
 } ERenderEventType;
 

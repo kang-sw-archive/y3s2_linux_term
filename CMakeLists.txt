@@ -8,6 +8,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 add_subdirectory(third)
 
 # Include dirs
+include_directories("/usr/include/cairo")
 
 ## DRIVER CONFIGURATION ##
 # Driver should be built in manual way
@@ -23,6 +24,7 @@ set(FBG_SRC ${FBG_SRC_DIR}/fbgraphics.c ${FBG_SRC_DIR}/nanojpeg/nanojpeg.c ${FBG
 
 # General dependency
 link_libraries(m)
+link_libraries(cairo)
 
 # Executable
 add_executable(app ${SRC_APP} ${SRC_CORE} ${FBG_SRC} ${SRC_ARCH})

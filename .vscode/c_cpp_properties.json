@@ -9,7 +9,8 @@
             "intelliSenseMode": "clang-x64",
             "includePath": [
                 "${workspaceRoot}/third/fbg/src",
-                "${workspaceRoot}/third/uEmbedded/src"
+                "${workspaceRoot}/third/uEmbedded/src",
+                "/usr/include/cairo"
             ],
             "compileCommands": "${workspaceFolder}/build/compile_commands.json",
             "configurationProvider": "vector-of-bool.cmake-tools"
