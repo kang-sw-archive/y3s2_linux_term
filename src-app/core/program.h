@@ -35,13 +35,13 @@ hash_djb2(unsigned char *str)
 /*! \brief Program instance initialize information descriptor. */
 struct ProgramInstInitStruct
 {
-    //! Maximum loadable resource count value.  
+    //! Maximum loadable resource count value.
     size_t NumMaxResource;
-    //! Buffer size of string pool on render. 
+    //! Buffer size of string pool on render.
     size_t RenderStringPoolSize;
     //! Maximum draw call count per rendering.
     size_t NumMaxDrawCall;
-    //! \brief Frame buffer's device file name. 
+    //! \brief Frame buffer's device file name.
     //! \details If Set NULL, fb0 will automatically be selected.
     char const *FrameBufferDevFileName;
 };
@@ -50,16 +50,17 @@ struct ProgramInstInitStruct
     \param Init Initalizer struct.
     \return Reference for newly created program instance.
  */
-struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init); 
+struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init);
 
 /*! \brief Destroy given program instance reference. */
-void PInst_Destroy(struct ProgramInstance *PInst);  
+void PInst_Destroy(struct ProgramInstance *PInst);
 
 //! Resource flag type.
 typedef uint32_t LOADRESOURCE_FLAG_T;
 
 //! Load resource flag values.
-enum {
+enum
+{
     LOADRESOURCE_FLAG_FONT_DEFAULT = 0,
     LOADRESOURCE_FLAG_FONT_BOLD = 1,
     LOADRESOURCE_FLAG_FONT_ITALIC = 2,
@@ -84,14 +85,14 @@ EStatus PInst_LoadResource(struct ProgramInstance *PInst, EResourceType Type, FH
 struct Resource *PInst_GetResource(struct ProgramInstance *PInst, FHash Hash);
 
 //! Will not be implemented for this project.
-void PInst_ReleaseResource(struct ProgramInstance *PInst);                     // @todo
+void PInst_ReleaseResource(struct ProgramInstance *PInst); // @todo
 
 /*! \brief Update program instance
     \param PInst 
     \param DeltaTime Delta time in seconds.
     \return Current system status. Returns non-zero value for warnings/errors.
  */
-EStatus PInst_Update(struct ProgramInstance *PInst, float DeltaTime);          // @todo
+EStatus PInst_Update(struct ProgramInstance *PInst, float DeltaTime); // @todo
 
 // Draw APIs
 /*! \brief   Request draw.           
@@ -103,14 +104,15 @@ EStatus PInst_Update(struct ProgramInstance *PInst, float DeltaTime);          /
 EStatus PInst_Flip(struct ProgramInstance *PInst, FTransform2 const *CamTransform);
 
 //! Color descriptor for draw call
-typedef struct Color {
+typedef struct Color
+{
     float A;
     float R;
     float G;
     float B;
 } FColor;
 
-typedef  struct Color const  *COLORREF;
+typedef struct Color const *COLORREF;
 
 /*! \brief Queue string rendering
     \param PInst 
@@ -148,10 +150,14 @@ EStatus PInst_RQueueImage(struct ProgramInstance *PInst, FTransform2 const *Tr, 
 
 // For library implementations
 void Internal_PInst_InitFB(struct ProgramInstance *Inst, char const *fb);
-void Internal_PInst_DeinitFB(struct ProgramInstance *Inst);                           // @todo.
-void *Internal_PInst_LoadImgInternal(struct ProgramInstance *Inst, char const *Path); // @todo.
-void *Internal_PInst_LoadFont(struct ProgramInstance *Inst, char const *Path, LOADRESOURCE_FLAG_T FontFlag); // @todo.
-void *Internal_PInst_FreeAllResource(struct Resource *rsrc);                          // @todo.
+void Internal_PInst_DeinitFB(struct ProgramInstance *Inst); // @todo.
+void *Internal_PInst_LoadImgInternal(struct ProgramInstance *Inst, char const *Path);
+void *Internal_PInst_LoadFont(struct ProgramInstance *Inst, char const *Path, LOADRESOURCE_FLAG_T FontFlag);
+void *Internal_PInst_FreeAllResource(struct Resource *rsrc); // @todo.
+// Forward declaration to render;
+struct RenderEventArg;
+void Internal_PInst_Draw(void *hFB, struct RenderEventArg const *Arg); // @todo.
+void Internal_PInst_Flush(void *hFB);                                  // @todo.
 
 //! Program status
 enum
@@ -188,8 +194,8 @@ typedef struct ProgramInstance
     size_t PoolMaxSize;
 
     // Priority queue for manage event objects
-    pqueue_t RenderEventQueue[RENDERER_NUM_BUFFER];
-    
+    pqueue_t arrRenderEventQueue[RENDERER_NUM_BUFFER];
+
     // Thread handle of rendering thread
     pthread_t ThreadHandle;
 } UProgramInstance;

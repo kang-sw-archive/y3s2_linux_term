@@ -1,4 +1,5 @@
 #pragma once
+#include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -18,4 +19,6 @@ typedef void *FHandle;
 
 #define INVALID_HASH ((uint32_t)-1)
 
-#define logprintf(msg, ...) printf("%s():%d (%s) \n\t", __func__, __LINE__, __FILE__); printf(msg, ##__VA_ARGS__);
+#define logprintf(msg, ...)                                    \
+    printf("%s():%d (%s) \n\t", __func__, __LINE__, __FILE__); \
+    printf(msg, ##__VA_ARGS__);

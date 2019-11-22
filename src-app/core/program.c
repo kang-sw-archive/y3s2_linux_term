@@ -3,13 +3,20 @@
 #include "program.h"
 #include "uEmbedded/algorithm.h"
 
-static TYPEID const PInstTypeID = {.TypeName = "ProgramInstance" };
+static TYPEID const PInstTypeID = {.TypeName = "ProgramInstance"};
 ASSIGN_TYPEID(UProgramInstance, PInstTypeID);
 
 static int resource_eval_func(void const *veval, void const *velem)
 {
     int64_t rmres = (int64_t) * ((FHash *)veval) - (int64_t)((struct Resource *)velem)->Hash;
     return rmres > 0 ? 1 : rmres < 0 ? -1 : 0;
+}
+
+static FRenderEventArg *pinst_new_renderevent_arg(UProgramInstance *s)
+{
+    size_t Active = s->ActiveBuffer;
+    uassert(s->PoolHeadIndex[Active] < s->PoolMaxSize);
+    return s->arrRenderEventArgPool[Active] + (s->PoolHeadIndex[Active]++);
 }
 
 static struct Resource *pinst_resource_find(UProgramInstance *s, FHash hash);
@@ -79,13 +86,13 @@ static struct Resource *pinst_resource_find(UProgramInstance *s, FHash hash)
 
 static int RenderEventArg_Predicate(void const *va, void const *vb)
 {
-    FRenderEventArg *a = va;
-    FRenderEventArg *b = vb;
+    FRenderEventArg const *a = va;
+    FRenderEventArg const *b = vb;
 
     return a->Layer - b->Layer;
 }
 
-static void RenderThread(void *VPInst);
+static void *RenderThread(void *VPInst);
 
 struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init)
 {
@@ -106,7 +113,7 @@ struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init)
     Internal_PInst_InitFB(inst, Init->FrameBufferDevFileName);
 
     // Initialize renderer memory pool
-    pqueue_init(&inst->RenderEventQueue,
+    pqueue_init(&inst->arrRenderEventQueue,
                 sizeof(FRenderEventArg *),
                 malloc(sizeof(FRenderEventArg *) * Init->NumMaxDrawCall),
                 sizeof(FRenderEventArg *) * Init->NumMaxDrawCall,
@@ -122,22 +129,54 @@ struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init)
     pthread_attr_init(&attr);
     pthread_create(&inst->ThreadHandle, &attr, RenderThread, inst);
 
-    // @todo.
-
     logprintf("Program has been initialized successfully.\n");
 
     return inst;
 }
 
-static void RenderThread(void *VPInst)
+static void *RenderThread(void *VPInst)
 {
     UProgramInstance *inst = VPInst;
 
-    logprintf("Thread has been initialized. \n");
+    logprintf("Thread has been successfully initialized. \n");
+    int ActiveIdx = inst->ActiveBuffer;
+    void *hFB = inst->hFB;
+
+    // hFB is escape trigger.
+    while (inst->hFB == NULL)
+    {
+        // Wait until flip request.
+        // This is notified via switching active buffer index value.
+        if (inst->ActiveBuffer == ActiveIdx)
+        {
+            pthread_yield(NULL);
+            continue;
+        }
+
+        ActiveIdx = inst->ActiveBuffer;
+
+        // Consume all queued draw calls
+        for (pqueue_t *DrawCallQueue = &inst->arrRenderEventQueue[ActiveIdx]; DrawCallQueue->cnt; pqueue_pop(DrawCallQueue))
+        {
+            FRenderEventArg const *Arg = pqueue_peek(DrawCallQueue);
+            Internal_PInst_Draw(hFB, &Arg);
+        }
+        Internal_PInst_Flush(hFB);
+
+        // Release memory pools of current active index
+        inst->StringPoolHeadIndex[ActiveIdx] = 0;
+        inst->PoolHeadIndex[ActiveIdx] = 0;
+    }
+
+    logprintf("Thread is shutting down\n");
 }
 
 void PInst_Destroy(struct ProgramInstance *PInst)
 {
-    Internal_PInst_DeinitFB(PInst);
     PInst->hFB = NULL;
+
+    pthread_join(PInst->ThreadHandle, NULL);
+    Internal_PInst_DeinitFB(PInst);
+
+    logprintf("Successfully destroied.\n");
 }

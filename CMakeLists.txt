@@ -2,7 +2,12 @@ cmake_minimum_required(VERSION 2.8)
 project(termp)
 
 # Build configs
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
+                    -std=c99 \
+                    -Wno-incompatible-pointer-types \
+                    -Wno-implicit-function-declaration\
+                    -Wno-pointer-to-int-cast"
+)
 
 # Configure subdirectories
 add_subdirectory(third)

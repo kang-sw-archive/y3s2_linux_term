@@ -23,7 +23,7 @@
 // Image descriptors
 typedef struct
 {
-    char *fontFamily;
+    char const *fontFamily;
     cairo_font_slant_t slant;
     cairo_font_weight_t weight;
 } rsrc_font_t;
@@ -72,7 +72,7 @@ void *Internal_PInst_LoadImgInternal(struct ProgramInstance *Inst, char const *P
     // Check if file exists.
     FILE *fp = fopen(Path, "r");
     if (fp == NULL)
-        return;
+        return NULL;
 
     fclose(fp);
     return cairo_image_surface_create_from_png(Path);
@@ -177,4 +177,12 @@ static cairo_surface_t *cairo_linuxfb_surface_create(const char *fb_name)
                                 &cairo_linuxfb_surface_destroy);
 
     return surface;
+}
+
+void Internal_PInst_Draw(void *hFB, struct RenderEventArg const *Arg)
+{
+}
+
+void Internal_PInst_Flush(void *hFB)
+{
 }

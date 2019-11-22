@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include <signal.h>
 #include "core/program.h"
+#include <time.h>
 
 static bool g_bRun = true;
 
@@ -34,15 +35,11 @@ int main(int argc, char *argv[])
         program = PInst_Create(&init);
     }
 
-    EStatus res = PInst_LoadResource(program, RESOURCE_IMAGE, hash_djb2("sample"), "../resource/rsrc.png", LOADRESOURCE_IMAGE_DEFAULT);
+    // Timer to elapse delta time.
 
-    if (res == STATUS_OK)
+    // Main program loop
+    while (g_bRun)
     {
-        logprintf("Image has sucessfully loaded.\n");
-    }
-    else
-    {
-        logprintf("Image loading failed.\n");
     }
 
     PInst_Destroy(program);
