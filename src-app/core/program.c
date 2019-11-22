@@ -35,7 +35,7 @@ static struct Resource *pinst_resource_new(UProgramInstance *s, FHash hash)
     return resource;
 }
 
-EStatus PInst_LoadImage(struct ProgramInstance *PInst, FHash Hash, char const *Path)
+EStatus PInst_LoadResource(struct ProgramInstance *PInst, EResourceType Type, FHash Hash, char const *Path, LOADRESOURCE_FLAG_T Flag)
 {
     UResource *rs;
     rs = pinst_resource_find(PInst, Hash);
@@ -43,7 +43,21 @@ EStatus PInst_LoadImage(struct ProgramInstance *PInst, FHash Hash, char const *P
     if (rs)
         return STATUS_RESOURCE_ALREADY_EXIST;
 
-    void *data = Internal_PInst_LoadImgInternal(PInst, Path);
+    void *data;
+    switch (Type)
+    {
+    case RESOURCE_IMAGE:
+        data = Internal_PInst_LoadImgInternal(PInst, Path);
+        break;
+    case RESOURCE_FONT:
+        data = Internal_PInst_LoadFont(PInst, Path, Flag);
+        break;
+    default:
+        logprintf("That type of resource is not defined ! \n");
+        data = NULL;
+        break;
+    }
+
     if (data == NULL)
         return ERROR_INVALID_RESOURCE_PATH;
 
@@ -69,6 +83,8 @@ static int RenderEventArg_Predicate(void const *va, void const *vb)
 
     return a->Layer - b->Layer;
 }
+
+static void RenderThread(void *VPInst);
 
 struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init)
 {
@@ -101,8 +117,12 @@ struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init)
     }
 
     // Initialize Renderer Thread
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_create(&inst->ThreadHandle, &attr, RenderThread, inst);
 
     // @todo.
+
     logprintf("Program has been initialized successfully.\n");
 
     return inst;
@@ -111,4 +131,12 @@ struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init)
 static void RenderThread(void *VPInst)
 {
     UProgramInstance *inst = VPInst;
+
+    logprintf("Thread has been initialized. \n");
+}
+
+struct ProgramInstance *PInst_Destroy(struct ProgramInstance *PInst)
+{
+    Internal_PInst_DeinitFB(PInst);
+    PInst->hFB = NULL;
 }

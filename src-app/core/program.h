@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 #include "common.h"
 #include "types.h"
 #include "uEmbedded/priority_queue.h"
@@ -16,6 +17,9 @@ enum{
     STATUS_RESOURCE_ALREADY_EXIST = 1,
     ERROR_INVALID_RESOURCE_PATH = -1,
 };
+
+// Typedefs
+typedef uint32_t EResourceType;
 
 static unsigned long
 hash_djb2(unsigned char *str)
@@ -38,9 +42,17 @@ struct ProgramInstInitStruct
     char const *FrameBufferDevFileName;
 };
 
-struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init); // @todo
+struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init); 
 struct ProgramInstance *PInst_Destroy(struct ProgramInstance *PInst);           // @todo
-EStatus PInst_LoadImage(struct ProgramInstance *PInst, FHash Hash, char const *Path);
+
+typedef uint32_t LOADRESOURCE_FLAG_T;
+enum {
+    LOADRESOURCE_FLAG_FONT_DEFAULT = 0,
+    LOADRESOURCE_FLAG_FONT_BOLD = 1,
+    LOADRESOURCE_FLAG_FONT_ITALIC = 2,
+    LOADRESOURCE_IMAGE_DEFAULT = 0,
+};
+EStatus PInst_LoadResource(struct ProgramInstance *PInst, EResourceType Type, FHash Hash, char const *Path, LOADRESOURCE_FLAG_T Flag);
 EStatus PInst_LoadFont(struct ProgramInstance* PInst, FHash Hash, char const* Path); 
 struct Resource *PInst_GetResource(struct ProgramInstance *PInst, FHash Hash); // @todo
 void PInst_ReleaseResource(struct ProgramInstance *PInst);                     // @todo
@@ -60,8 +72,9 @@ EStatus PInst_RQueueImage(struct ProgramInstance *PInst, FTransform2 const *Tr, 
 
 // Library Dependent Code
 void Internal_PInst_InitFB(struct ProgramInstance *Inst, char const *fb);
-void Internal_PInst_DeinitFB(struct PrgoramInstance *Inst);                           // @todo.
+void Internal_PInst_DeinitFB(struct ProgramInstance *Inst);                           // @todo.
 void *Internal_PInst_LoadImgInternal(struct ProgramInstance *Inst, char const *Path); // @todo.
+void *Internal_PInst_LoadFont(struct ProgramInstance *Inst, char const *Path, LOADRESOURCE_FLAG_T FontFlag); // @todo.
 void *Internal_PInst_FreeAllResource(struct Resource *rsrc);                          // @todo.
 
 //! Program status
@@ -77,7 +90,7 @@ typedef struct ProgramInstance
 {
     LPTYPEID id;
 
-    // Frame buffer handle.
+    // Frame buffer handle. Also used to trigger thread shutdown.
     void *hFB;
 
     // Resource management
@@ -100,15 +113,17 @@ typedef struct ProgramInstance
 
     // Priority queue for manage event objects
     pqueue_t RenderEventQueue[RENDERER_NUM_BUFFER];
-
+    
+    // Thread handle of rendering thread
+    pthread_t ThreadHandle;
 } UProgramInstance;
 
-typedef enum
+enum
 {
     RESOURCE_LINEVECTOR,
     RESOURCE_IMAGE,
     RESOURCE_FONT
-} EResourceType;
+};
 
 typedef struct Resource
 {

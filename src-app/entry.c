@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
         program = PInst_Create(&init);
     }
 
-    EStatus res = PInst_LoadImage(program, hash_djb2("sample"), "../resource/rsrc.png");
+    EStatus res = PInst_LoadResource(program, RESOURCE_IMAGE, hash_djb2("sample"), "../resource/rsrc.png", LOADRESOURCE_IMAGE_DEFAULT);
 
     if (res == STATUS_OK)
     {

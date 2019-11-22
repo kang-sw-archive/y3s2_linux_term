@@ -20,16 +20,13 @@
 #include <signal.h>
 
 // -- Resource descriptors
-// Font descriptors
+// Image descriptors
 typedef struct
 {
     char *fontFamily;
     cairo_font_slant_t slant;
     cairo_font_weight_t weight;
 } rsrc_font_t;
-
-// Image descriptors
-typedef cairo_surface_t *rsrc_img_t;
 
 typedef struct
 {
@@ -59,6 +56,17 @@ void Internal_PInst_InitFB(UProgramInstance *s, char const *fb)
     s->hFB = v;
 }
 
+void Internal_PInst_DeinitFB(struct ProgramInstance *Inst)
+{
+    program_cairo_wrapper_t *v = Inst->hFB;
+    for (size_t i = 0; i < RENDERER_NUM_BUFFER; i++)
+    {
+        cairo_surface_destroy(v->backbuffer[i]);
+        free(v->backbuffer_memory[i]);
+    }
+    cairo_surface_destroy(v->screen);
+}
+
 void *Internal_PInst_LoadImgInternal(struct ProgramInstance *Inst, char const *Path)
 {
     // Check if file exists.
@@ -68,6 +76,19 @@ void *Internal_PInst_LoadImgInternal(struct ProgramInstance *Inst, char const *P
 
     fclose(fp);
     return cairo_image_surface_create_from_png(Path);
+}
+
+void *Internal_PInst_LoadFont(struct ProgramInstance *Inst, char const *Path, LOADRESOURCE_FLAG_T Flag)
+{
+    cairo_font_slant_t slant = (Flag & LOADRESOURCE_FLAG_FONT_ITALIC) ? CAIRO_FONT_SLANT_ITALIC : CAIRO_FONT_SLANT_NORMAL;
+    cairo_font_weight_t weight = (Flag & LOADRESOURCE_FLAG_FONT_BOLD) ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL;
+
+    rsrc_font_t *fontdat = malloc(sizeof(rsrc_font_t));
+    fontdat->fontFamily = Path;
+    fontdat->slant = slant;
+    fontdat->weight = weight;
+
+    return fontdat;
 }
 
 typedef struct _cairo_linuxfb_device

@@ -25,6 +25,7 @@ set(FBG_SRC ${FBG_SRC_DIR}/fbgraphics.c ${FBG_SRC_DIR}/nanojpeg/nanojpeg.c ${FBG
 # General dependency
 link_libraries(m)
 link_libraries(cairo)
+link_libraries(pthread)
 
 # Executable
 add_executable(app ${SRC_APP} ${SRC_CORE} ${FBG_SRC} ${SRC_ARCH})
