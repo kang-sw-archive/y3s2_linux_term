@@ -12,12 +12,30 @@
 #include <signal.h>
 #include "core/program.h"
 #include <time.h>
+#include <sys/time.h>
 
+#define DESIRED_DELTA_TIME (1.0f / 30.0f)
 static bool g_bRun = true;
+static double g_TimeInSeconds;
+
+double GetTimeInSeconds()
+{
+    return g_TimeInSeconds;
+}
 
 void sigint_handler(int signo)
 {
     g_bRun = false;
+}
+
+static inline uint64_t time_in_100usec(struct timeval const *v)
+{
+    return v->tv_sec * 10000ull + v->tv_usec / 100;
+}
+
+static inline double time_100usec_to_sec(uint64_t usec)
+{
+    return usec / 10000.0;
 }
 
 int main(int argc, char *argv[])
@@ -36,10 +54,34 @@ int main(int argc, char *argv[])
     }
 
     // Timer to elapse delta time.
+    struct timeval tv;
+    double prev_tick, curtime;
+    gettimeofday(&tv, NULL);
+    curtime = prev_tick = time_100usec_to_sec(time_in_100usec(&tv));
 
     // Main program loop
     while (g_bRun)
     {
+        // Wait until delta seconds
+        for (; curtime - prev_tick < DESIRED_DELTA_TIME;)
+        {
+            gettimeofday(&tv, NULL);
+            curtime = time_100usec_to_sec(time_in_100usec(&tv));
+            prev_tick = curtime;
+            pthread_yield(NULL);
+        }
+        g_TimeInSeconds = curtime;
+
+        // Global Timer Handler.
+        // @todo.
+
+        // Input Event Handler.
+        // @todo.
+
+        // Update program instance.
+        PInst_Update(program, DESIRED_DELTA_TIME);
+
+        logprintf("Update() called. Cur time is %f\n", curtime);
     }
 
     PInst_Destroy(program);

@@ -171,6 +171,11 @@ static void *RenderThread(void *VPInst)
     logprintf("Thread is shutting down\n");
 }
 
+EStatus PInst_Update(struct ProgramInstance *PInst, float DeltaTime)
+{
+    return STATUS_OK;
+}
+
 void PInst_Destroy(struct ProgramInstance *PInst)
 {
     PInst->hFB = NULL;

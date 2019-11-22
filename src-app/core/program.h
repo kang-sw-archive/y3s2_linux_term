@@ -92,7 +92,7 @@ void PInst_ReleaseResource(struct ProgramInstance *PInst); // @todo
     \param DeltaTime Delta time in seconds.
     \return Current system status. Returns non-zero value for warnings/errors.
  */
-EStatus PInst_Update(struct ProgramInstance *PInst, float DeltaTime); // @todo
+EStatus PInst_Update(struct ProgramInstance *PInst, float DeltaTime);
 
 // Draw APIs
 /*! \brief   Request draw.           
