@@ -10,7 +10,7 @@
             "includePath": [
                 "${workspaceRoot}/third/fbg/src",
                 "${workspaceRoot}/third/uEmbedded/src",
-                "/usr/include/cairo"
+                "${workspaceRoot}/third/cairo/include"
             ],
             "compileCommands": "${workspaceFolder}/build/compile_commands.json",
             "configurationProvider": "vector-of-bool.cmake-tools"
