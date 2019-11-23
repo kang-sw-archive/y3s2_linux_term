@@ -158,7 +158,7 @@ struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init)
     }
 
     // Load frame buffer
-    Internal_PInst_InitFB(inst, Init->FrameBufferDevFileName);
+    inst->hFB = Internal_PInst_InitFB(inst, Init->FrameBufferDevFileName);
 
     // Initialize renderer memory pool
     pqueue_init(&inst->arrRenderEventQueue,
@@ -190,7 +190,7 @@ static void *RenderThread(void *VPInst)
     if (inst == NULL)
     {
         logprintf("Invalid argument has delievered.\n");
-        return;
+        return NULL;
     }
 
     logprintf("Thread verify . . . typename of input argument: %s\n", inst->id->TypeName);
@@ -226,6 +226,7 @@ static void *RenderThread(void *VPInst)
     }
 
     logprintf("Thread is shutting down\n");
+    return NULL;
 }
 
 EStatus PInst_Update(struct ProgramInstance *PInst, float DeltaTime)
@@ -242,4 +243,27 @@ void PInst_Destroy(struct ProgramInstance *PInst)
     Internal_PInst_DeinitFB(PInst, hFB);
 
     logprintf("Successfully destroied.\n");
+}
+
+static bool pinst_push_render_event(UProgramInstance *s, FRenderEventArg *ref)
+{
+    int active = s->ActiveBuffer;
+    pqueue_t *queue = &s->arrRenderEventQueue[active];
+
+    if (queue->cnt == queue->capacity)
+        return false;
+
+    pqueue_push(queue, ref);
+    return true;
+}
+
+EStatus PInst_RQueueImage(struct ProgramInstance *PInst, int32_t Layer, FTransform2 const *Tr, struct Resource *Image)
+{
+    FRenderEventArg *ev = pinst_new_renderevent_arg(PInst);
+    ev->Layer = Layer;
+    ev->Data.Image.Image = Image;
+    ev->Transform = *Tr;
+    ev->Type = ERET_IMAGE;
+
+    return pinst_push_render_event(PInst, ev);
 }

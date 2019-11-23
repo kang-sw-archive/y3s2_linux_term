@@ -14,6 +14,7 @@ enum
     RENDERER_NUM_BUFFER = 2,
     STATUS_RESOURCE_ALREADY_EXIST = 1,
     ERROR_INVALID_RESOURCE_PATH = -1,
+    ERROR_DRAW_CALL_OVERFLOW = -2
 };
 
 //! \brief Resource Type indicator.
@@ -117,6 +118,7 @@ typedef struct Color const *COLORREF;
 
 /*! \brief Queue string rendering
     \param PInst 
+    \param Layer Objects with high layer values are drawn in front.
     \param Tr Transform
     \param Font Font resource data
     \param String String to output. Will be copied.
@@ -125,21 +127,23 @@ typedef struct Color const *COLORREF;
  */
 EStatus PInst_RQueueText(
     struct ProgramInstance *PInst,
+    int32_t Layer,
     FTransform2 const *Tr,
     struct Resource *Font,
     char const *String,
     COLORREF rgba);
 
 //! Will not be implemented.
-EStatus PInst_RQueuePolygon(struct ProgramInstance *PInst, FTransform2 const *Tr, struct Resource *Vect, COLORREF rgba);
+EStatus PInst_RQueuePolygon(struct ProgramInstance *PInst, int32_t Layer, FTransform2 const *Tr, struct Resource *Vect, COLORREF rgba);
 
 /*! \brief Queue filled rectangle rendering
     \param Tr   Transform of ractangle.
+    \param Layer Objects with high layer values are drawn in front.
     \param pos  Base position of ractangle.
     \param size Size of ractangle
     \return 
  */
-EStatus PInst_RQueueRect(struct ProgramInstance *PInst, FTransform2 const *Tr, FVec2int ofst, FVec2int size, COLORREF rgba);
+EStatus PInst_RQueueRect(struct ProgramInstance *PInst, int32_t Layer, FTransform2 const *Tr, FVec2int ofst, FVec2int size, COLORREF rgba);
 
 /*! \brief Queue image draw call.
     \param PInst 
@@ -147,10 +151,10 @@ EStatus PInst_RQueueRect(struct ProgramInstance *PInst, FTransform2 const *Tr, F
     \param Image 
     \return 
  */
-EStatus PInst_RQueueImage(struct ProgramInstance *PInst, FTransform2 const *Tr, struct Resource *Image);
+EStatus PInst_RQueueImage(struct ProgramInstance *PInst, int32_t Layer, FTransform2 const *Tr, struct Resource *Image);
 
 // For library implementations
-void Internal_PInst_InitFB(struct ProgramInstance *Inst, char const *fb);
+void *Internal_PInst_InitFB(struct ProgramInstance *Inst, char const *fb);
 void Internal_PInst_DeinitFB(struct ProgramInstance *Inst, void *hFB); // @todo.
 void *Internal_PInst_LoadImgInternal(struct ProgramInstance *Inst, char const *Path);
 void *Internal_PInst_LoadFont(struct ProgramInstance *Inst, char const *Path, LOADRESOURCE_FLAG_T FontFlag);
