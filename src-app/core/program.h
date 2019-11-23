@@ -188,6 +188,7 @@ void *Internal_PInst_LoadFont(struct ProgramInstance *Inst, char const *Path, LO
 void *Internal_PInst_FreeAllResource(struct Resource *rsrc); // @todo.
 // Forward declaration to render;
 struct RenderEventArg;
+void Internal_PInst_Predraw(void *hFB, int ActiveBuffer);                                // @todo.
 void Internal_PInst_Draw(void *hFB, struct RenderEventArg const *Arg, int ActiveBuffer); // @todo.
 void Internal_PInst_Flush(void *hFB, int ActiveBuffer);                                  // @todo.
 

@@ -18,6 +18,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <signal.h>
+#include "../core/internal/program-types.h"
 
 // -- Resource descriptors
 // Image descriptors
@@ -28,11 +29,16 @@ typedef struct
     cairo_font_weight_t weight;
 } rsrc_font_t;
 
+typedef struct cairo_surface_t rsrc_image_t;
+
 typedef struct
 {
     cairo_surface_t *screen;
     void *backbuffer_memory[RENDERER_NUM_MAX_BUFFER];
     cairo_surface_t *backbuffer[RENDERER_NUM_MAX_BUFFER];
+
+    float w, h;
+    cairo_t *context;
 } program_cairo_wrapper_t;
 
 static cairo_surface_t *cairo_linuxfb_surface_create(const char *fb_name);
@@ -46,6 +52,8 @@ void *Internal_PInst_InitFB(UProgramInstance *s, char const *fb)
     size_t h = cairo_image_surface_get_height(v->screen);
     size_t strd = cairo_image_surface_get_stride(v->screen);
     size_t fmt = cairo_image_surface_get_format(v->screen);
+    v->w = w;
+    v->h = h;
 
     lvlog(LOGLEVEL_INFO,
           "Image info: \n"
@@ -186,20 +194,10 @@ static cairo_surface_t *cairo_linuxfb_surface_create(const char *fb_name)
     return surface;
 }
 
-void Internal_PInst_Draw(void *hFB, struct RenderEventArg const *Arg, int ActiveBuffer)
-{
-}
-
-void Internal_PInst_Flush(void *hFB, int ActiveBuffer)
+void Internal_PInst_Predraw(void *hFB, int ActiveBuffer)
 {
     program_cairo_wrapper_t *fb = hFB;
-    cairo_surface_t *surf_bck = fb->backbuffer + ActiveBuffer;
-
-    // Copy value to frame buffer
-    cairo_t *frame = cairo_create(fb->screen);
-    cairo_set_source_surface(frame, surf_bck, 0, 0);
-    cairo_paint(frame);
-    cairo_destroy(frame);
+    cairo_surface_t *surf_bck = fb->backbuffer[ActiveBuffer];
 
     // Clear back buffer
     void *d = cairo_image_surface_get_data(surf_bck);
@@ -207,4 +205,56 @@ void Internal_PInst_Flush(void *hFB, int ActiveBuffer)
     size_t h = cairo_image_surface_get_height(surf_bck);
 
     memset(d, 0xff, strd * h);
+
+    // Create context for buff
+    fb->context = cairo_create(surf_bck);
+}
+
+void Internal_PInst_Draw(void *hFB, struct RenderEventArg const *Arg, int ActiveBuffer)
+{
+    program_cairo_wrapper_t *fb = hFB;
+    cairo_t *cr = fb->context;
+
+    // Translate location
+    FTransform2 tr = Arg->Transform;
+    tr.P.x *= fb->w;
+    tr.P.y *= fb->h;
+    cairo_translate(cr, tr.P.x, tr.P.y);
+
+    switch (Arg->Type)
+    {
+    case ERET_IMAGE:
+    {
+        cairo_surface_t *rsrc = Arg->Data.Image.Image->data;
+        size_t w = cairo_image_surface_get_width(rsrc);
+        size_t h = cairo_image_surface_get_height(rsrc);
+
+        // @todo. Scale
+        // @todo. Rotate
+
+        cairo_set_source_surface(cr, rsrc, -w / 2, -h / 2);
+        cairo_paint(cr);
+
+        logprintf("Rendering image ... at [%f, %f]\n", tr.P.x, tr.P.y);
+    }
+    break;
+
+    default:
+        break;
+    }
+}
+
+void Internal_PInst_Flush(void *hFB, int ActiveBuffer)
+{
+    program_cairo_wrapper_t *fb = hFB;
+
+    // Finalize buffer context
+    cairo_destroy(fb->context);
+
+    // Copy value to frame buffer
+    cairo_surface_t *surf_bck = fb->backbuffer[ActiveBuffer];
+    cairo_t *frame = cairo_create(fb->screen);
+    cairo_set_source_surface(frame, surf_bck, 0, 0);
+    cairo_paint(frame);
+    cairo_destroy(frame);
 }
