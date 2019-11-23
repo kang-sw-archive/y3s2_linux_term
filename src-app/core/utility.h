@@ -11,8 +11,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define logprintf(msg, ...)                                    \
-    printf("%s():%d (%s) \n\t", __func__, __LINE__, __FILE__); \
+#define logprintf(msg, ...)                                                        \
+    printf("\033[37;1;1m>> %s():%d (%s)\033[0m \n", __func__, __LINE__, __FILE__); \
     printf(msg, ##__VA_ARGS__);
 
 /*! \brief Several typical log level constants */
