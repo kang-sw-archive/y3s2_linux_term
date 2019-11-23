@@ -116,10 +116,10 @@ struct Resource *PInst_GetResource(struct ProgramInstance *PInst, FHash Hash)
     return pinst_resource_find(PInst, Hash);
 }
 
-static int RenderEventArg_Predicate(void const *va, void const *vb)
+static int RenderEventArg_Predicate(FRenderEventArg const **va, FRenderEventArg const **vb)
 {
-    FRenderEventArg const *a = va;
-    FRenderEventArg const *b = vb;
+    FRenderEventArg const *a = *va;
+    FRenderEventArg const *b = *vb;
 
     return a->Layer - b->Layer;
 }
@@ -160,9 +160,9 @@ struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init)
     for (size_t i = 0; i < RENDERER_NUM_MAX_BUFFER; i++)
     {
         pqueue_init(&inst->arrRenderEventQueue[i],
-                    sizeof(FRenderEventArg *),
-                    malloc(sizeof(FRenderEventArg *) * Init->NumMaxDrawCall),
-                    sizeof(FRenderEventArg *) * Init->NumMaxDrawCall,
+                    sizeof(FRenderEventArg **),
+                    malloc(sizeof(FRenderEventArg **) * Init->NumMaxDrawCall),
+                    sizeof(FRenderEventArg **) * Init->NumMaxDrawCall,
                     RenderEventArg_Predicate);
         inst->arrRenderEventArgPool[i] = malloc(sizeof(FRenderEventArg) * Init->NumMaxDrawCall);
 
@@ -219,8 +219,8 @@ static void *RenderThread(void *VPInst)
         // Consume all queued draw calls
         for (pqueue_t *DrawCallQueue = &inst->arrRenderEventQueue[ActiveIdx]; DrawCallQueue->cnt; pqueue_pop(DrawCallQueue))
         {
-            FRenderEventArg const *Arg = pqueue_peek(DrawCallQueue);
-            Internal_PInst_Draw(hFB, Arg, ActiveIdx);
+            FRenderEventArg const **Arg = pqueue_peek(DrawCallQueue);
+            Internal_PInst_Draw(hFB, *Arg, ActiveIdx);
         }
         Internal_PInst_Flush(hFB, ActiveIdx);
 
@@ -277,7 +277,7 @@ static bool pinst_push_render_event(UProgramInstance *s, FRenderEventArg *ref)
     if (queue->cnt == queue->capacity)
         return false;
 
-    pqueue_push(queue, ref);
+    pqueue_push(queue, &ref);
     return true;
 }
 
