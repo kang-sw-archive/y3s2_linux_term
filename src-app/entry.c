@@ -50,7 +50,7 @@ static inline double time_100usec_to_sec(uint64_t usec)
 
 int main(int argc, char *argv[])
 {
-    g_logLv = LOGLEVEL_VERBOSE + 100;
+    g_logLv = LOGLEVEL_VERBOSE;
 
     signal(SIGABRT, sigint_handler);
     signal(SIGINT, sigint_handler);
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
         // @todo.
 
         // ~~ TEST CODE ~~
-
+        PInst_RQueueImage(program, 0, &trsample, rsrc);
         // ~~~~~~~~~~~~~~~
 
         // Flip Buffer

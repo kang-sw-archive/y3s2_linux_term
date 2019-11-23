@@ -328,9 +328,9 @@ static void *RenderThread(void *VPInst)
         for (pqueue_t *DrawCallQueue = &inst->arrRenderEventQueue[ActiveIdx]; DrawCallQueue->cnt; pqueue_pop(DrawCallQueue))
         {
             FRenderEventArg const *Arg = pqueue_peek(DrawCallQueue);
-            Internal_PInst_Draw(hFB, &Arg);
+            Internal_PInst_Draw(hFB, &Arg, ActiveIdx);
         }
-        Internal_PInst_Flush(hFB);
+        Internal_PInst_Flush(hFB, ActiveIdx);
 
         // Release memory pools of current active index
         inst->StringPoolHeadIndex[ActiveIdx] = 0;
@@ -388,13 +388,18 @@ static bool pinst_push_render_event(UProgramInstance *s, FRenderEventArg *ref)
     return true;
 }
 
-static void pinst_renderer_translate_camera(FTransform2 *dst, FTransform2 const *obj, FTransform2 const *cam)
+static void pinst_renderer_translate_camera(FTransform2 *dst, FTransform2 const *obj, FTransform2 const *cam, float Aspect)
 {
     // Position should be handled carefully, since its drawing origin changes by camera state.
     FVec2float P = VEC2_SUB(float, cam->P, obj->P);
     P = FVec2f_Rotate(&P, cam->R);
+    P = VEC2_MUL(float, P, cam->S);
 
-    dst->P = VEC2_MUL(float, P, cam->S);
+    // To Camera Transform
+    P.x += Aspect * 0.5f;
+    P.y += 0.5f;
+
+    dst->P = P;
     dst->S = VEC2_MUL(float, cam->S, obj->S);
     dst->R = cam->R - obj->R;
 }
@@ -402,7 +407,7 @@ static void pinst_renderer_translate_camera(FTransform2 *dst, FTransform2 const 
 static FRenderEventArg *pinst_queue_render_event_arg(UProgramInstance *s, int32_t Layer, FTransform2 const *Tr, bool *retv)
 {
     FRenderEventArg *ev = pinst_new_renderevent_arg(s);
-    pinst_renderer_translate_camera(&ev->Transform, Tr, &s->ActiveCameraTransform);
+    pinst_renderer_translate_camera(&ev->Transform, Tr, &s->ActiveCameraTransform, s->AspectRatio);
     ev->Layer = Layer;
     *retv = pinst_push_render_event(s, ev);
     return ev;

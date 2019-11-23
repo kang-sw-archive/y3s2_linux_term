@@ -47,6 +47,11 @@ void *Internal_PInst_InitFB(UProgramInstance *s, char const *fb)
     size_t strd = cairo_image_surface_get_stride(v->screen);
     size_t fmt = cairo_image_surface_get_format(v->screen);
 
+    lvlog(LOGLEVEL_INFO,
+          "Image info: \n"
+          "w, h= [%d, %d] \n[strd: %d], fmt: %d\n",
+          w, h, strd, fmt);
+
     for (size_t i = 0; i < RENDERER_NUM_MAX_BUFFER; i++)
     {
         v->backbuffer_memory[i] = malloc(h * strd);
@@ -181,10 +186,25 @@ static cairo_surface_t *cairo_linuxfb_surface_create(const char *fb_name)
     return surface;
 }
 
-void Internal_PInst_Draw(void *hFB, struct RenderEventArg const *Arg)
+void Internal_PInst_Draw(void *hFB, struct RenderEventArg const *Arg, int ActiveBuffer)
 {
 }
 
-void Internal_PInst_Flush(void *hFB)
+void Internal_PInst_Flush(void *hFB, int ActiveBuffer)
 {
+    program_cairo_wrapper_t *fb = hFB;
+    cairo_surface_t *surf_bck = fb->backbuffer + ActiveBuffer;
+
+    // Copy value to frame buffer
+    cairo_t *frame = cairo_create(fb->screen);
+    cairo_set_source_surface(frame, surf_bck, 0, 0);
+    cairo_paint(frame);
+    cairo_destroy(frame);
+
+    // Clear back buffer
+    void *d = cairo_image_surface_get_data(surf_bck);
+    size_t strd = cairo_image_surface_get_stride(surf_bck);
+    size_t h = cairo_image_surface_get_height(surf_bck);
+
+    memset(d, 0xff, strd * h);
 }
