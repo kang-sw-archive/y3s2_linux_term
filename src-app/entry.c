@@ -1,4 +1,12 @@
-
+/*! \brief
+    \file entry.c
+    \author Seungwoo Kang (ki6080@gmail.com)
+    \version 0.1
+    \date 2019-11-23 
+    \copyright Copyright (c) 2019. Seungwoo Kang. All rights reserved.
+    
+    \details
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -83,7 +91,7 @@ int main(int argc, char *argv[])
         // Update program instance.
         PInst_Update(program, DESIRED_DELTA_TIME);
 
-        logprintf("Update() called. Cur time is %f\n", curtime);
+        lvlog(100000, "Update() called. Cur time is %f\n", curtime);
     }
 
     PInst_Destroy(program);

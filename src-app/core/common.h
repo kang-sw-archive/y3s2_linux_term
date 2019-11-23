@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
-
+#include "utility.h"
 typedef int32_t EStatus;
 
 enum
@@ -18,7 +18,3 @@ typedef uint32_t FHash;
 typedef void *FHandle;
 
 #define INVALID_HASH ((uint32_t)-1)
-
-#define logprintf(msg, ...)                                    \
-    printf("%s():%d (%s) \n\t", __func__, __LINE__, __FILE__); \
-    printf(msg, ##__VA_ARGS__);

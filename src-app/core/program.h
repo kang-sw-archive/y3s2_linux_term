@@ -21,19 +21,6 @@ enum
 typedef uint32_t EResourceType;
 typedef struct ProgramInstance UProgramInstance;
 
-//! \brief Primarily used hash function for all string indicators.
-static unsigned long
-hash_djb2(unsigned char *str)
-{
-    unsigned long hash = 5381;
-    int c;
-
-    while (c = *str++)
-        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-
-    return hash;
-}
-
 /*! \brief Program instance initialize information descriptor. */
 struct ProgramInstInitStruct
 {
