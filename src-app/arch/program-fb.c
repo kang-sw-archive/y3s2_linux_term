@@ -184,10 +184,10 @@ static cairo_surface_t *cairo_linuxfb_surface_create(const char *fb_name)
                                                   cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32,
                                                                                 device->fb_vinfo.xres));
 
-    printf("xres: %u, yres: %u, bpp: %d\n",
-           device->fb_vinfo.xres,
-           device->fb_vinfo.yres,
-           device->fb_vinfo.bits_per_pixel);
+    logprintf("xres: %u, yres: %u, bpp: %d\n",
+              device->fb_vinfo.xres,
+              device->fb_vinfo.yres,
+              device->fb_vinfo.bits_per_pixel);
     cairo_surface_set_user_data(surface, NULL, device,
                                 &cairo_linuxfb_surface_destroy);
 
@@ -200,11 +200,16 @@ void Internal_PInst_Predraw(void *hFB, int ActiveBuffer)
     cairo_surface_t *surf_bck = fb->backbuffer[ActiveBuffer];
 
     // Clear back buffer
-    void *d = cairo_image_surface_get_data(surf_bck);
+    uint32_t *d = cairo_image_surface_get_data(surf_bck);
     size_t strd = cairo_image_surface_get_stride(surf_bck);
     size_t h = cairo_image_surface_get_height(surf_bck);
 
     memset(d, 0xff, strd * h);
+    for (size_t i = 0; i < 54; i++)
+    {
+        /* code */
+        d[i * strd / 4 + 53] = 0;
+    }
 
     // Create context for buff
     fb->context = cairo_create(surf_bck);
@@ -219,7 +224,7 @@ void Internal_PInst_Draw(void *hFB, struct RenderEventArg const *Arg, int Active
     FTransform2 tr = Arg->Transform;
     tr.P.x *= fb->w;
     tr.P.y *= fb->h;
-    cairo_translate(cr, tr.P.x, tr.P.y);
+    // cairo_translate(cr, tr.P.x, tr.P.y);
 
     switch (Arg->Type)
     {
@@ -232,10 +237,9 @@ void Internal_PInst_Draw(void *hFB, struct RenderEventArg const *Arg, int Active
         // @todo. Scale
         // @todo. Rotate
 
-        cairo_set_source_surface(cr, rsrc, -w / 2, -h / 2);
-        cairo_paint(cr);
-
-        logprintf("Rendering image ... at [%f, %f]\n", tr.P.x, tr.P.y);
+        // cairo_set_source_surface(cr, rsrc, -w / 2, -h / 2);
+        // cairo_set_source_surface(cr, rsrc, 0, 0);
+        // cairo_paint(cr);
     }
     break;
 
