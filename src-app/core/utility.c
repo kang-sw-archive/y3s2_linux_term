@@ -4,7 +4,6 @@
 #include "uEmbedded/uassert.h"
 
 unsigned g_logLv = 0;
-
 typedef struct cmdarg
 {
     uint64_t flags;

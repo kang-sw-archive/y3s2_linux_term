@@ -31,8 +31,8 @@ typedef struct
 typedef struct
 {
     cairo_surface_t *screen;
-    void *backbuffer_memory[RENDERER_NUM_BUFFER];
-    cairo_surface_t *backbuffer[RENDERER_NUM_BUFFER];
+    void *backbuffer_memory[RENDERER_NUM_MAX_BUFFER];
+    cairo_surface_t *backbuffer[RENDERER_NUM_MAX_BUFFER];
 } program_cairo_wrapper_t;
 
 static cairo_surface_t *cairo_linuxfb_surface_create(const char *fb_name);
@@ -47,11 +47,13 @@ void *Internal_PInst_InitFB(UProgramInstance *s, char const *fb)
     size_t strd = cairo_image_surface_get_stride(v->screen);
     size_t fmt = cairo_image_surface_get_format(v->screen);
 
-    for (size_t i = 0; i < RENDERER_NUM_BUFFER; i++)
+    for (size_t i = 0; i < RENDERER_NUM_MAX_BUFFER; i++)
     {
         v->backbuffer_memory[i] = malloc(h * strd);
         v->backbuffer[i] = cairo_image_surface_create_for_data(v->backbuffer_memory[i], fmt, w, h, strd);
     }
+
+    *PInst_AspectRatio(s) = (float)w / h;
 
     return v;
 }
@@ -59,7 +61,7 @@ void *Internal_PInst_InitFB(UProgramInstance *s, char const *fb)
 void Internal_PInst_DeinitFB(struct ProgramInstance *Inst, void *hFB)
 {
     program_cairo_wrapper_t *v = hFB;
-    for (size_t i = 0; i < RENDERER_NUM_BUFFER; i++)
+    for (size_t i = 0; i < RENDERER_NUM_MAX_BUFFER; i++)
     {
         cairo_surface_destroy(v->backbuffer[i]);
         free(v->backbuffer_memory[i]);

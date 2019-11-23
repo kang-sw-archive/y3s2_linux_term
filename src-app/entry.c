@@ -25,6 +25,7 @@
 #define DESIRED_DELTA_TIME (1.0 / 30.0)
 static bool g_bRun = true;
 static double g_TimeInSeconds;
+UProgramInstance *g_pInst;
 
 double GetTimeInSeconds()
 {
@@ -33,7 +34,7 @@ double GetTimeInSeconds()
 
 void sigint_handler(int signo)
 {
-    logprintf("SIG %d RECV\n", signo);
+    lvlog(LOGLEVEL_INFO, "SIG %d RECV\n", signo);
     g_bRun = false;
 }
 
@@ -49,6 +50,8 @@ static inline double time_100usec_to_sec(uint64_t usec)
 
 int main(int argc, char *argv[])
 {
+    g_logLv = LOGLEVEL_VERBOSE + 100;
+
     signal(SIGABRT, sigint_handler);
     signal(SIGINT, sigint_handler);
     signal(SIGKILL, sigint_handler);
@@ -58,12 +61,13 @@ int main(int argc, char *argv[])
     UProgramInstance *program;
     {
         struct ProgramInstInitStruct init;
-        init.FrameBufferDevFileName = NULL;
+        PInst_InitializeInitStruct(&init);
+
         init.NumMaxDrawCall = 0x8000;
         init.NumMaxResource = 0x2000;
         init.RenderStringPoolSize = 0x4000;
 
-        program = PInst_Create(&init);
+        g_pInst = program = PInst_Create(&init);
     }
 
     // Timer to elapse delta time.
@@ -71,6 +75,27 @@ int main(int argc, char *argv[])
     double prev_tick, curtime;
     gettimeofday(&tv, NULL);
     curtime = prev_tick = time_100usec_to_sec(time_in_100usec(&tv));
+
+    //~~  Test function  ~~
+    FHash hash = hash_djb2("smpl");
+    EStatus res = PInst_LoadResource(program, RESOURCE_IMAGE, hash, "../resource/rsrc.png", LOADRESOURCE_IMAGE_DEFAULT);
+    if (res != STATUS_OK)
+    {
+        logprintf("Loading resource failed. %d \n", res);
+        return -1;
+    }
+
+    UResource *rsrc = PInst_GetResource(program, hash);
+    if (rsrc == NULL)
+    {
+        logprintf("Resource finding failed\n");
+        return -1;
+    }
+
+    FTransform2 trsample = FTransform2_Zero();
+
+    // Instantiate Game State.
+    // @todo.
 
     // Main program loop
     while (g_bRun)
@@ -85,13 +110,23 @@ int main(int argc, char *argv[])
         prev_tick = curtime;
         g_TimeInSeconds = curtime;
 
-        // Global Timer Handler.
+        // Update program timer
+        PInst_UpdateTimer(program, DESIRED_DELTA_TIME);
+
+        // Update game state
         // @todo.
 
-        // Update program instance.
-        PInst_Update(program, DESIRED_DELTA_TIME);
+        // ~~ TEST CODE ~~
 
-        lvlog(100000, "Update() called. Cur time is %f\n", curtime);
+        // ~~~~~~~~~~~~~~~
+
+        // Flip Buffer
+        while (g_bRun && PInst_Flip(program) != STATUS_OK)
+        {
+            pthread_yield(NULL);
+        }
+
+        lvlog(LOGLEVEL_VERBOSE + 1000, "Update() called. Cur time is %f\n", curtime);
     }
 
     PInst_Destroy(program);

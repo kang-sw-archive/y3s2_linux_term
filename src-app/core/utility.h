@@ -15,12 +15,23 @@
     printf("%s():%d (%s) \n\t", __func__, __LINE__, __FILE__); \
     printf(msg, ##__VA_ARGS__);
 
+/*! \brief Several typical log level constants */
+enum
+{
+    LOGLEVEL_VERBOSE = 100,
+    LOGLEVEL_DISPLAY = 90,
+    LOGLEVEL_INFO = 80,
+    LOGLEVEL_WARNING = 50,
+    LOGLEVEL_ERROR = 25,
+    LOGLEVEL_CRITICAL = 5
+};
+
 extern unsigned g_logLv;
 
-#define lvlog(lv, msg, ...)         \
-    if (lv <= g_logLv)              \
-    {                               \
-        logprintf(msg, __VA_ARGS__) \
+#define lvlog(lv, msg, ...)           \
+    if (lv <= g_logLv)                \
+    {                                 \
+        logprintf(msg, ##__VA_ARGS__) \
     }
 
 /*! \brief String hash function using djb2 algorithm

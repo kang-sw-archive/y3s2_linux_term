@@ -7,11 +7,12 @@
 #include "common.h"
 #include "types.h"
 #include "uEmbedded/priority_queue.h"
+#include "uEmbedded/timer_logic.h"
 
 //! \brief Miscellaneous constant values
 enum
 {
-    RENDERER_NUM_BUFFER = 2,
+    RENDERER_NUM_MAX_BUFFER = 2,
     STATUS_RESOURCE_ALREADY_EXIST = 1,
     ERROR_INVALID_RESOURCE_PATH = -1,
     ERROR_DRAW_CALL_OVERFLOW = -2
@@ -33,7 +34,18 @@ struct ProgramInstInitStruct
     //! \brief Frame buffer's device file name.
     //! \details If Set NULL, fb0 will automatically be selected.
     char const *FrameBufferDevFileName;
+    //! Number of maximum timer nodes
+    size_t NumMaxTimer;
 };
+
+static void PInst_InitializeInitStruct(struct ProgramInstInitStruct *v)
+{
+    v->NumMaxDrawCall = 0x2000;
+    v->RenderStringPoolSize = 0x2000;
+    v->NumMaxResource = 0x1000;
+    v->FrameBufferDevFileName = NULL;
+    v->NumMaxTimer = 0x1000;
+}
 
 /*! \brief Create new program instance.
     \param Init Initalizer struct.
@@ -66,6 +78,28 @@ enum
  */
 EStatus PInst_LoadResource(struct ProgramInstance *PInst, EResourceType Type, FHash Hash, char const *Path, LOADRESOURCE_FLAG_T Flag);
 
+/*! \brief Queue timer in milliseconds
+    \param Callback 
+    \param CallbackArg 
+    \param delay_ms Delay time in milliseconds
+    \return Handle of assigned timer.
+ */
+timer_handle_t PInst_QueueTimer(struct ProgramInstance *PInst, void (*Callback)(void *), void *CallbackArg, size_t delay_ms);
+
+/*! \brief Abort timer 
+    \param PInst 
+    \param handle 
+    \return True if given timer handle was valid, and canceled successfully.
+ */
+bool PInst_AbortTimer(struct ProgramInstance *PInst, timer_handle_t handle);
+
+/*! \brief Get Timer Delay Left.
+    \param PInst 
+    \param handle Timer handle.
+    \return Time left in milliseconds.
+ */
+size_t PInst_GetTimerDelayLeft(struct ProgramInstance *PInst, timer_handle_t handle);
+
 /*! \brief Find resource by Hash. Returns NULL if no resource exists for given hash.
     \param PInst 
     \param Hash 
@@ -81,7 +115,7 @@ void PInst_ReleaseResource(struct ProgramInstance *PInst); // @todo
     \param DeltaTime Delta time in seconds.
     \return Current system status. Returns non-zero value for warnings/errors.
  */
-EStatus PInst_Update(struct ProgramInstance *PInst, float DeltaTime);
+EStatus PInst_UpdateTimer(struct ProgramInstance *PInst, float DeltaTime);
 
 // Draw APIs
 /*! \brief   Request draw.           
@@ -91,6 +125,12 @@ EStatus PInst_Update(struct ProgramInstance *PInst, float DeltaTime);
         Notify ProgramInstance that queueing rendering events are done and readied to render output. Output screen will be refreshed as soon as all of the queue is processed.
  */
 EStatus PInst_Flip(struct ProgramInstance *PInst);
+
+/*! \brief Set camera tranform for next frame. */
+void PInst_SetCameraTransform(struct ProgramInstance *s, FTransform2 const *v);
+
+//! Returns handle of aspect ratio.
+float *PInst_AspectRatio(struct ProgramInstance *s);
 
 //! Color descriptor for draw call
 typedef struct Color
@@ -166,63 +206,4 @@ enum
     RESOURCE_FONT
 };
 
-typedef struct Resource
-{
-    /* data */
-    uint32_t Hash;
-    EResourceType Type;
-    void *data;
-} UResource;
-
-/*! \brief Type of rendering event. */
-typedef enum
-{
-    ERET_NONE = 0, // Nothing
-    ERET_TEXT,     // Text
-    ERET_POLY,     // Empty Polygon
-    ERET_RECT,     // Filled Rectangle
-    ERET_IMAGE
-} ERenderEventType;
-
-/*! \brief Text rendering event data structure */
-struct RenderEventData_Text
-{
-    // Length of string
-    size_t StrLen;
-    // Name of this argument will indicate the string address.
-    char str[4];
-    uint8_t rgba[4];
-};
-
-struct RenderEventData_Polylines
-{
-    struct Resource *PolyLines;
-    uint8_t rgba[4];
-};
-
-struct RenderEventData_Rectangle
-{
-    int32_t x0, y0;
-    int32_t x1, y1;
-    uint8_t rgba[4];
-};
-
-struct RenderEventData_IMAGE
-{
-    struct Resource *Image;
-};
-
-typedef union {
-    struct RenderEventData_Text Text;
-    struct RenderEventData_Polylines Poly;
-    struct RenderEventData_Rectangle Rect;
-    struct RenderEventData_IMAGE Image;
-} FRenderEventData;
-
-typedef struct RenderEventArg
-{
-    int32_t Layer;
-    ERenderEventType Type;
-    FTransform2 Transform;
-    FRenderEventData Data;
-} FRenderEventArg;
+typedef struct Resource UResource;

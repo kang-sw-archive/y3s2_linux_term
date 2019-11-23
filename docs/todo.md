@@ -11,6 +11,11 @@
 3. [ ] Rendering Interface 정의 
    1. [x] Rendering Loop
    2. [ ] Queueing Draw Calls
+   3. [ ] Translation Algorithm ... 
+         - Transform에서 Position은, 카메라의 위치를 빼고, 회전시킨 뒤, 스케일하여 구함.
+         - 렌더링 시점에서(cairo), 먼저 Transform의 Scale Factor를 이용해 종횡 이미지 스케일
+         - Rotate Factor로 이미지 회전시킨 후
+         - 위에서 구한 Position에 그린다 ... 단, 중점이 되어야 하므로 이를 고려.
 4. [ ] Global Function Timer 구현.
    * 단, 게임 스레드에서 실행되게끔.
 5. [ ] Rendering Implementation

@@ -20,36 +20,107 @@ struct ProgramInstance
     // Frame buffer handle. Also used to trigger thread shutdown.
     void *hFB;
 
+    // Aspect ratio of screen. Used in translation.
+    float AspectRatio;
+
     // Resource management
     struct Resource *arrResource;
     size_t NumResource;
     size_t NumMaxResource;
 
     // Double buffered draw arg pool
-    int ActiveBuffer; // 0 or 1.
+    int ActiveBufferIndex; // 0 or 1.
 
     // Camera transform for active buff. Immutable for one frame.
-    FTransform2 ActiveBufferCamera;
+    FTransform2 ActiveCameraTransform;
 
     // Camera tranform for next frame.
     FTransform2 PendingCameraTransform;
 
+    // Renderer status
+    int RendererStatus;
+
     // Rendering event memory pool. Double buffered.
-    char *RenderStringPool[RENDERER_NUM_BUFFER];
-    size_t StringPoolHeadIndex[RENDERER_NUM_BUFFER];
+    char *RenderStringPool[RENDERER_NUM_MAX_BUFFER];
+    size_t StringPoolHeadIndex[RENDERER_NUM_MAX_BUFFER];
     size_t StringPoolMaxSize;
 
     // Evenr argument memory pool
-    struct RenderEventArg *arrRenderEventArgPool[RENDERER_NUM_BUFFER];
-    size_t PoolHeadIndex[RENDERER_NUM_BUFFER];
+    struct RenderEventArg *arrRenderEventArgPool[RENDERER_NUM_MAX_BUFFER];
+    size_t PoolHeadIndex[RENDERER_NUM_MAX_BUFFER];
     size_t PoolMaxSize;
 
     // Priority queue for manage event objects
-    pqueue_t arrRenderEventQueue[RENDERER_NUM_BUFFER];
+    pqueue_t arrRenderEventQueue[RENDERER_NUM_MAX_BUFFER];
 
     // Thread handle of rendering thread
     pthread_t ThreadHandle;
+
+    // Timer functionality
+    timer_logic_t Timer;
+    double TotalTime;
 };
+
+struct Resource
+{
+    /* data */
+    uint32_t Hash;
+    EResourceType Type;
+    void *data;
+};
+
+/*! \brief Type of rendering event. */
+typedef enum
+{
+    ERET_NONE = 0, // Nothing
+    ERET_TEXT,     // Text
+    ERET_POLY,     // Empty Polygon
+    ERET_RECT,     // Filled Rectangle
+    ERET_IMAGE
+} ERenderEventType;
+
+/*! \brief Text rendering event data structure */
+struct RenderEventData_Text
+{
+    // Length of string
+    size_t StrLen;
+    // Name of this argument will indicate the string address.
+    char str[4];
+    uint8_t rgba[4];
+};
+
+struct RenderEventData_Polylines
+{
+    struct Resource *PolyLines;
+    uint8_t rgba[4];
+};
+
+struct RenderEventData_Rectangle
+{
+    int32_t x0, y0;
+    int32_t x1, y1;
+    uint8_t rgba[4];
+};
+
+struct RenderEventData_IMAGE
+{
+    struct Resource *Image;
+};
+
+typedef union {
+    struct RenderEventData_Text Text;
+    struct RenderEventData_Polylines Poly;
+    struct RenderEventData_Rectangle Rect;
+    struct RenderEventData_IMAGE Image;
+} FRenderEventData;
+
+typedef struct RenderEventArg
+{
+    int32_t Layer;
+    ERenderEventType Type;
+    FTransform2 Transform;
+    FRenderEventData Data;
+} FRenderEventArg;
 
 static TYPEID const PInstTypeID = {.TypeName = "ProgramInstance"};
 ASSIGN_TYPEID(UProgramInstance, PInstTypeID);
@@ -62,9 +133,16 @@ static int resource_eval_func(void const *veval, void const *velem)
 
 static FRenderEventArg *pinst_new_renderevent_arg(UProgramInstance *s)
 {
-    size_t Active = s->ActiveBuffer;
+    size_t Active = s->ActiveBufferIndex;
     uassert(s->PoolHeadIndex[Active] < s->PoolMaxSize);
     return s->arrRenderEventArgPool[Active] + (s->PoolHeadIndex[Active]++);
+}
+
+static inline int pinst_next_buff_idx(UProgramInstance const *s)
+{
+    static const int idxAddVal[2] = {1, -(RENDERER_NUM_MAX_BUFFER - 1)};
+    int idx = s->ActiveBufferIndex;
+    return idx + idxAddVal[idx == (RENDERER_NUM_MAX_BUFFER - 1)];
 }
 
 static struct Resource *pinst_resource_find(UProgramInstance *s, FHash hash);
@@ -91,6 +169,16 @@ static struct Resource *pinst_resource_new(UProgramInstance *s, FHash hash)
     return resource;
 }
 
+float *PInst_AspectRatio(struct ProgramInstance *s)
+{
+    return &s->AspectRatio;
+}
+
+void PInst_SetCameraTransform(struct ProgramInstance *s, FTransform2 const *v)
+{
+    s->PendingCameraTransform = *v;
+}
+
 EStatus PInst_LoadResource(struct ProgramInstance *PInst, EResourceType Type, FHash Hash, char const *Path, LOADRESOURCE_FLAG_T Flag)
 {
     UResource *rs;
@@ -109,7 +197,7 @@ EStatus PInst_LoadResource(struct ProgramInstance *PInst, EResourceType Type, FH
         data = Internal_PInst_LoadFont(PInst, Path, Flag);
         break;
     default:
-        logprintf("That type of resource is not defined ! \n");
+        lvlog(LOGLEVEL_WARNING, "That type of resource is not defined ! \n");
         data = NULL;
         break;
     }
@@ -130,6 +218,11 @@ static struct Resource *pinst_resource_find(UProgramInstance *s, FHash hash)
         return NULL;
     struct Resource *ret = s->arrResource + idx;
     return ret->Hash == hash ? ret : NULL;
+}
+
+struct Resource *PInst_GetResource(struct ProgramInstance *PInst, FHash Hash)
+{
+    return pinst_resource_find(PInst, Hash);
 }
 
 static int RenderEventArg_Predicate(void const *va, void const *vb)
@@ -157,19 +250,37 @@ struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init)
         inst->RenderStringPool[i] = malloc(Init->RenderStringPoolSize);
     }
 
+    // Initialize timer
+    size_t timerBuffSz = TIMER_ELEM_SIZE * Init->NumMaxTimer;
+    timer_init(&inst->Timer, malloc(timerBuffSz), timerBuffSz);
+
     // Load frame buffer
     inst->hFB = Internal_PInst_InitFB(inst, Init->FrameBufferDevFileName);
+    // Aspect ratio must be set in InitFB function
+    uassert(inst->AspectRatio);
+    lvlog(LOGLEVEL_INFO, "Aspect ratio value: %f\n", inst->AspectRatio);
+
+    // Initialize camera transforms
+    inst->ActiveCameraTransform = FTransform2_Zero();
+    inst->PendingCameraTransform = FTransform2_Zero();
 
     // Initialize renderer memory pool
-    pqueue_init(&inst->arrRenderEventQueue,
-                sizeof(FRenderEventArg *),
-                malloc(sizeof(FRenderEventArg *) * Init->NumMaxDrawCall),
-                sizeof(FRenderEventArg *) * Init->NumMaxDrawCall,
-                RenderEventArg_Predicate);
     inst->PoolMaxSize = Init->NumMaxDrawCall;
-    for (size_t i = 0; i < 2; i++)
+    for (size_t i = 0; i < RENDERER_NUM_MAX_BUFFER; i++)
     {
+        pqueue_init(&inst->arrRenderEventQueue[i],
+                    sizeof(FRenderEventArg *),
+                    malloc(sizeof(FRenderEventArg *) * Init->NumMaxDrawCall),
+                    sizeof(FRenderEventArg *) * Init->NumMaxDrawCall,
+                    RenderEventArg_Predicate);
         inst->arrRenderEventArgPool[i] = malloc(sizeof(FRenderEventArg) * Init->NumMaxDrawCall);
+
+        lvlog(LOGLEVEL_INFO, "Initializing screen buffer %d\n", i);
+        pqueue_t *q = inst->arrRenderEventQueue + i;
+        lvlog(LOGLEVEL_INFO,
+              "Num Maximum Args: %d ... should be %d\n",
+              q->capacity,
+              Init->NumMaxDrawCall);
     }
 
     // Initialize Renderer Thread
@@ -178,7 +289,7 @@ struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init)
     pthread_create(&inst->ThreadHandle, &attr, RenderThread, inst);
     pthread_attr_destroy(&attr);
 
-    logprintf("Program has been initialized successfully.\n");
+    lvlog(LOGLEVEL_INFO, "Program has been initialized successfully.\n");
 
     return inst;
 }
@@ -189,14 +300,14 @@ static void *RenderThread(void *VPInst)
 
     if (inst == NULL)
     {
-        logprintf("Invalid argument has delievered.\n");
+        lvlog(LOGLEVEL_CRITICAL, "Invalid argument has delievered.\n");
         return NULL;
     }
 
-    logprintf("Thread verify . . . typename of input argument: %s\n", inst->id->TypeName);
-    logprintf("hFB is %p\n", inst->hFB);
-    logprintf("Thread has been successfully initialized. \n");
-    int ActiveIdx = inst->ActiveBuffer;
+    lvlog(LOGLEVEL_DISPLAY, "Thread verify . . . typename of input argument: %s\n", inst->id->TypeName);
+    lvlog(LOGLEVEL_DISPLAY, "hFB is %p\n", inst->hFB);
+    lvlog(LOGLEVEL_DISPLAY, "Thread has been successfully initialized. \n");
+    int ActiveIdx = inst->ActiveBufferIndex;
     void *hFB = inst->hFB;
 
     // hFB is escape trigger.
@@ -204,13 +315,14 @@ static void *RenderThread(void *VPInst)
     {
         // Wait until flip request.
         // This is notified via switching active buffer index value.
-        if (inst->ActiveBuffer == ActiveIdx)
+        if (inst->ActiveBufferIndex == ActiveIdx)
         {
             pthread_yield(NULL);
             continue;
         }
 
-        ActiveIdx = inst->ActiveBuffer;
+        inst->RendererStatus = RENDERER_BUSY;
+        ActiveIdx = inst->ActiveBufferIndex;
 
         // Consume all queued draw calls
         for (pqueue_t *DrawCallQueue = &inst->arrRenderEventQueue[ActiveIdx]; DrawCallQueue->cnt; pqueue_pop(DrawCallQueue))
@@ -223,14 +335,33 @@ static void *RenderThread(void *VPInst)
         // Release memory pools of current active index
         inst->StringPoolHeadIndex[ActiveIdx] = 0;
         inst->PoolHeadIndex[ActiveIdx] = 0;
+        inst->RendererStatus = RENDERER_IDLE;
     }
 
-    logprintf("Thread is shutting down\n");
+    lvlog(LOGLEVEL_INFO, "Thread is shutting down\n");
     return NULL;
 }
 
-EStatus PInst_Update(struct ProgramInstance *PInst, float DeltaTime)
+EStatus PInst_UpdateTimer(struct ProgramInstance *PInst, float DeltaTime)
 {
+    // Update accumulated time.
+    PInst->TotalTime += DeltaTime;
+    size_t ms = (size_t)(PInst->TotalTime * 1000.0);
+
+    // Update Timer
+    timer_update(&PInst->Timer, ms);
+
+    return STATUS_OK;
+}
+
+EStatus PInst_Flip(struct ProgramInstance *s)
+{
+    if (s->RendererStatus != RENDERER_IDLE)
+        return RENDERER_BUSY;
+
+    s->ActiveBufferIndex = pinst_next_buff_idx(s);
+    s->ActiveCameraTransform = s->PendingCameraTransform;
+    lvlog(LOGLEVEL_VERBOSE + 100, "Buffer Successfully Flipped. Active Buffer : %d\n", s->ActiveBufferIndex);
     return STATUS_OK;
 }
 
@@ -242,12 +373,12 @@ void PInst_Destroy(struct ProgramInstance *PInst)
     pthread_join(PInst->ThreadHandle, NULL);
     Internal_PInst_DeinitFB(PInst, hFB);
 
-    logprintf("Successfully destroied.\n");
+    lvlog(LOGLEVEL_INFO, "Successfully destroied.\n");
 }
 
 static bool pinst_push_render_event(UProgramInstance *s, FRenderEventArg *ref)
 {
-    int active = s->ActiveBuffer;
+    int active = s->ActiveBufferIndex;
     pqueue_t *queue = &s->arrRenderEventQueue[active];
 
     if (queue->cnt == queue->capacity)
@@ -257,13 +388,34 @@ static bool pinst_push_render_event(UProgramInstance *s, FRenderEventArg *ref)
     return true;
 }
 
+static void pinst_renderer_translate_camera(FTransform2 *dst, FTransform2 const *obj, FTransform2 const *cam)
+{
+    // Position should be handled carefully, since its drawing origin changes by camera state.
+    FVec2float P = VEC2_SUB(float, cam->P, obj->P);
+    P = FVec2f_Rotate(&P, cam->R);
+
+    dst->P = VEC2_MUL(float, P, cam->S);
+    dst->S = VEC2_MUL(float, cam->S, obj->S);
+    dst->R = cam->R - obj->R;
+}
+
+static FRenderEventArg *pinst_queue_render_event_arg(UProgramInstance *s, int32_t Layer, FTransform2 const *Tr, bool *retv)
+{
+    FRenderEventArg *ev = pinst_new_renderevent_arg(s);
+    pinst_renderer_translate_camera(&ev->Transform, Tr, &s->ActiveCameraTransform);
+    ev->Layer = Layer;
+    *retv = pinst_push_render_event(s, ev);
+    return ev;
+}
+
 EStatus PInst_RQueueImage(struct ProgramInstance *PInst, int32_t Layer, FTransform2 const *Tr, struct Resource *Image)
 {
-    FRenderEventArg *ev = pinst_new_renderevent_arg(PInst);
-    ev->Layer = Layer;
+    bool Result;
+    FRenderEventArg *ev;
+    ev = pinst_queue_render_event_arg(PInst, Layer, Tr, &Result);
+
     ev->Data.Image.Image = Image;
-    ev->Transform = *Tr;
     ev->Type = ERET_IMAGE;
 
-    return pinst_push_render_event(PInst, ev);
+    return Result;
 }
