@@ -284,36 +284,45 @@ static bool pinst_push_render_event(UProgramInstance *s, FRenderEventArg *ref)
 
 #define ANG_TO_RAD (M_PI / 180.0)
 #define M_PI 3.14159265358979323846 /* pi */
-static void pinst_renderer_translate_camera(FTransform2 *dst, FTransform2 const *obj, FTransform2 const *cam, float Aspect)
+static void pinst_renderer_translate_camera(FTransform2 *dst, FTransform2 const *obj, FTransform2 const *cam, float Aspect, bool bAbsolute)
 {
     // Position should be handled carefully, since its drawing origin changes by camera state.
-    FVec2float P = VEC2_SUB(float, obj->P, cam->P);
-    P = FVec2f_Rotate(&P, cam->R * ANG_TO_RAD);
-    P = VEC2_MUL(float, P, cam->S);
+    if (bAbsolute)
+    {
+        *dst = *obj;
+        dst->P.x += Aspect * 0.5f;
+        dst->P.y += 0.5f;
+    }
+    else
+    {
+        FVec2float P = VEC2_SUB(float, obj->P, cam->P);
+        P = FVec2f_Rotate(&P, cam->R * ANG_TO_RAD);
+        P = VEC2_MUL(float, P, cam->S);
 
-    // To Camera Transform
-    P.x += Aspect * 0.5f;
-    P.y += 0.5f;
+        // To Camera Transform
+        P.x += Aspect * 0.5f;
+        P.y += 0.5f;
 
-    dst->P = P;
-    dst->S = VEC2_MUL(float, cam->S, obj->S);
-    dst->R = (cam->R - obj->R) * ANG_TO_RAD;
+        dst->P = P;
+        dst->S = VEC2_MUL(float, cam->S, obj->S);
+        dst->R = (cam->R - obj->R) * ANG_TO_RAD;
+    }
 }
 
-static FRenderEventArg *pinst_queue_render_event_arg(UProgramInstance *s, int32_t Layer, FTransform2 const *Tr, bool *retv)
+static FRenderEventArg *pinst_queue_render_event_arg(UProgramInstance *s, int32_t Layer, FTransform2 const *Tr, bool *retv, bool bAbsolute)
 {
     FRenderEventArg *ev = pinst_new_renderevent_arg(s);
-    pinst_renderer_translate_camera(&ev->Transform, Tr, &s->ActiveCameraTransform, s->AspectRatio);
+    pinst_renderer_translate_camera(&ev->Transform, Tr, &s->ActiveCameraTransform, s->AspectRatio, bAbsolute);
     ev->Layer = Layer;
     *retv = pinst_push_render_event(s, ev);
     return ev;
 }
 
-EStatus PInst_RQueueImage(struct ProgramInstance *PInst, int32_t Layer, FTransform2 const *Tr, struct Resource *Image)
+EStatus PInst_RQueueImage(struct ProgramInstance *PInst, int32_t Layer, FTransform2 const *Tr, struct Resource *Image, bool bAbsolute)
 {
     bool Result;
     FRenderEventArg *ev;
-    ev = pinst_queue_render_event_arg(PInst, Layer, Tr, &Result);
+    ev = pinst_queue_render_event_arg(PInst, Layer, Tr, &Result, bAbsolute);
 
     ev->Data.Image.Image = Image;
     ev->Type = ERET_IMAGE;
@@ -327,11 +336,12 @@ EStatus PInst_RQueueText(
     FTransform2 const *Tr,
     struct Resource *Font,
     char const *String,
-    COLORREF rgba)
+    COLORREF rgba,
+    bool bAbsolute)
 {
     bool Result;
     FRenderEventArg *ev;
-    ev = pinst_queue_render_event_arg(s, Layer, Tr, &Result);
+    ev = pinst_queue_render_event_arg(s, Layer, Tr, &Result, bAbsolute);
 
     // Copy string.
     int active = s->ActiveBufferIndex;

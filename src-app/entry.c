@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
         // @todo.
 
         // ~~ TEST CODE ~~
-        PInst_RQueueImage(program, 0, &trsample, rsrc);
+        PInst_RQueueImage(program, 0, &trsample, rsrc, true);
         trsample.P.x += DESIRED_DELTA_TIME * 0.1;
         trsample.P.y += DESIRED_DELTA_TIME * 0.1;
 
@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
         // camtr.R -= 0.5f;
 
         FColor v = {1, 0, 0, 1};
-        PInst_RQueueText(program, 1, &trtext, font, "hello, world!", &v);
+        PInst_RQueueText(program, 1, &trtext, font, "hello, world!", &v, true);
 
         PInst_SetCameraTransform(program, &camtr);
         // ~~~~~~~~~~~~~~~

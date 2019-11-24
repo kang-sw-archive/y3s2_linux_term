@@ -158,10 +158,10 @@ EStatus PInst_RQueueText(
     FTransform2 const *Tr,
     struct Resource *Font,
     char const *String,
-    COLORREF rgba);
+    COLORREF rgba, bool bAbsolute);
 
 //! Will not be implemented.
-EStatus PInst_RQueuePolygon(struct ProgramInstance *PInst, int32_t Layer, FTransform2 const *Tr, struct Resource *Vect, COLORREF rgba);
+EStatus PInst_RQueuePolygon(struct ProgramInstance *PInst, int32_t Layer, FTransform2 const *Tr, struct Resource *Vect, COLORREF rgba, bool bAbsolute);
 
 /*! \brief Queue filled rectangle rendering
     \param Tr   Transform of ractangle.
@@ -170,7 +170,7 @@ EStatus PInst_RQueuePolygon(struct ProgramInstance *PInst, int32_t Layer, FTrans
     \param size Size of ractangle
     \return 
  */
-EStatus PInst_RQueueRect(struct ProgramInstance *PInst, int32_t Layer, FTransform2 const *Tr, FVec2int ofst, FVec2int size, COLORREF rgba);
+EStatus PInst_RQueueRect(struct ProgramInstance *PInst, int32_t Layer, FTransform2 const *Tr, FVec2int ofst, FVec2int size, COLORREF rgba, bool bAbsolute);
 
 /*! \brief Queue image draw call.
     \param PInst 
@@ -178,7 +178,7 @@ EStatus PInst_RQueueRect(struct ProgramInstance *PInst, int32_t Layer, FTransfor
     \param Image 
     \return 
  */
-EStatus PInst_RQueueImage(struct ProgramInstance *PInst, int32_t Layer, FTransform2 const *Tr, struct Resource *Image);
+EStatus PInst_RQueueImage(struct ProgramInstance *PInst, int32_t Layer, FTransform2 const *Tr, struct Resource *Image, bool bAbsolute);
 
 // For library implementations
 void *Internal_PInst_InitFB(struct ProgramInstance *Inst, char const *fb);
