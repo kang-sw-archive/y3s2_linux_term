@@ -74,7 +74,8 @@ struct RenderEventData_Text
     // Length of string
     size_t StrLen;
     // Name of this argument will indicate the string address.
-    char str[4];
+    char const *Str;
+    UResource *Font;
     FColor rgba;
 };
 

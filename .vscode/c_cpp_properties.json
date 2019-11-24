@@ -8,7 +8,7 @@
             "compilerPath": "/usr/bin/clang",
             "cStandard": "c11",
             "cppStandard": "c++17",
-            "intelliSenseMode": "clang-x64",
+            "intelliSenseMode": "clang-x86",
             "includePath": [
                 "${workspaceRoot}/third/fbg/src",
                 "${workspaceRoot}/third/uEmbedded/src",

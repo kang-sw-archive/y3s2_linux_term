@@ -73,12 +73,20 @@ int main(int argc, char *argv[])
     // Timer to elapse delta time.
     struct timeval tv;
     double prev_tick, curtime;
+    float delta;
     gettimeofday(&tv, NULL);
     curtime = prev_tick = time_100usec_to_sec(time_in_100usec(&tv));
 
     //~~  Test function  ~~
     FHash hash = hash_djb2("smpl");
+    FHash hashfont = hash_djb2("font");
     EStatus res = PInst_LoadResource(program, RESOURCE_IMAGE, hash, "../resource/rsrc.png", LOADRESOURCE_IMAGE_DEFAULT);
+    if (res != STATUS_OK)
+    {
+        logprintf("Loading resource failed. %d \n", res);
+        return -1;
+    }
+    res = PInst_LoadResource(program, RESOURCE_FONT, hashfont, "serif", LOADRESOURCE_FLAG_FONT_BOLD);
     if (res != STATUS_OK)
     {
         logprintf("Loading resource failed. %d \n", res);
@@ -86,7 +94,8 @@ int main(int argc, char *argv[])
     }
 
     UResource *rsrc = PInst_GetResource(program, hash);
-    if (rsrc == NULL)
+    UResource *font = PInst_GetResource(program, hashfont);
+    if (rsrc == NULL || font == NULL)
     {
         logprintf("Resource finding failed\n");
         return -1;
@@ -97,12 +106,14 @@ int main(int argc, char *argv[])
 
     // Instantiate Game State.
     // @todo.
+    FTransform2 trtext = FTransform2_Zero();
+    trtext.S = (FVec2float){32.f, 32.f};
 
     // Main program loop
     while (g_bRun)
     {
         // Wait until delta seconds
-        for (; curtime - prev_tick < DESIRED_DELTA_TIME;)
+        for (; (delta = curtime - prev_tick) < DESIRED_DELTA_TIME;)
         {
             gettimeofday(&tv, NULL);
             curtime = time_100usec_to_sec(time_in_100usec(&tv));
@@ -112,7 +123,7 @@ int main(int argc, char *argv[])
         g_TimeInSeconds = curtime;
 
         // Update program timer
-        PInst_UpdateTimer(program, DESIRED_DELTA_TIME);
+        PInst_UpdateTimer(program, delta);
 
         // Update game state
         // @todo.
@@ -129,6 +140,10 @@ int main(int argc, char *argv[])
         }
         trsample.R += 0.5f;
         // camtr.R -= 0.5f;
+
+        FColor v = {1, 0, 0, 1};
+        PInst_RQueueText(program, 1, &trtext, font, "hello, world!", &v);
+
         PInst_SetCameraTransform(program, &camtr);
         // ~~~~~~~~~~~~~~~
 
@@ -140,7 +155,6 @@ int main(int argc, char *argv[])
 
         lvlog(LOGLEVEL_VERBOSE + 1000, "Update() called. Cur time is %f\n", curtime);
     }
-
     PInst_Destroy(program);
 
     return 0;

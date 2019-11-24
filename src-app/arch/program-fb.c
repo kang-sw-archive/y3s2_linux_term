@@ -22,13 +22,7 @@
 
 // -- Resource descriptors
 // Image descriptors
-typedef struct
-{
-    char const *fontFamily;
-    cairo_font_slant_t slant;
-    cairo_font_weight_t weight;
-} rsrc_font_t;
-
+typedef struct cairo_font_face_t rsrc_font_t;
 typedef struct cairo_surface_t rsrc_image_t;
 
 typedef struct
@@ -98,12 +92,8 @@ void *Internal_PInst_LoadFont(struct ProgramInstance *Inst, char const *Path, LO
     cairo_font_slant_t slant = (Flag & LOADRESOURCE_FLAG_FONT_ITALIC) ? CAIRO_FONT_SLANT_ITALIC : CAIRO_FONT_SLANT_NORMAL;
     cairo_font_weight_t weight = (Flag & LOADRESOURCE_FLAG_FONT_BOLD) ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL;
 
-    rsrc_font_t *fontdat = malloc(sizeof(rsrc_font_t));
-    fontdat->fontFamily = Path;
-    fontdat->slant = slant;
-    fontdat->weight = weight;
-
-    return fontdat;
+    cairo_font_face_t *f = cairo_toy_font_face_create(Path, slant, weight);
+    return f;
 }
 
 typedef struct _cairo_linuxfb_device
@@ -214,17 +204,19 @@ void Internal_PInst_Draw(void *hFB, struct RenderEventArg const *Arg, int Active
 {
     program_cairo_wrapper_t *fb = hFB;
     cairo_t *cr = fb->context;
+    cairo_save(cr);
 
     // Translate location
     FTransform2 tr = Arg->Transform;
     tr.P.x *= fb->h;
     tr.P.y *= fb->h;
-    cairo_translate(cr, tr.P.x, tr.P.y);
 
     switch (Arg->Type)
     {
     case ERET_IMAGE:
     {
+        cairo_translate(cr, tr.P.x, tr.P.y);
+
         cairo_surface_t *rsrc = Arg->Data.Image.Image->data;
         int w = cairo_image_surface_get_width(rsrc);
         int h = cairo_image_surface_get_height(rsrc);
@@ -238,9 +230,26 @@ void Internal_PInst_Draw(void *hFB, struct RenderEventArg const *Arg, int Active
     }
     break;
 
+    case ERET_TEXT:
+    {
+        cairo_move_to(cr, tr.P.x, tr.P.y);
+
+        cairo_font_face_t *font = Arg->Data.Text.Font->data;
+        cairo_set_font_face(cr, font);
+        FColor c = Arg->Data.Text.rgba;
+        cairo_set_source_rgba(cr, c.R, c.G, c.B, c.A);
+        // cairo_set_source_rgba(cr, 1, 0, 0, 1);
+        cairo_set_font_size(cr, (tr.S.x + tr.S.y) * .5f);
+        cairo_rotate(cr, tr.R);
+        cairo_show_text(cr, Arg->Data.Text.Str);
+    }
+    break;
+
     default:
         break;
     }
+
+    cairo_restore(cr);
 }
 
 void Internal_PInst_Flush(void *hFB, int ActiveBuffer)

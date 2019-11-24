@@ -217,6 +217,7 @@ static void *RenderThread(void *VPInst)
         Internal_PInst_Predraw(hFB, ActiveIdx);
 
         // Consume all queued draw calls
+        // logprintf("Number of draw calls %d\n", inst->arrRenderEventQueue[ActiveIdx].cnt);
         for (pqueue_t *DrawCallQueue = &inst->arrRenderEventQueue[ActiveIdx]; DrawCallQueue->cnt; pqueue_pop(DrawCallQueue))
         {
             FRenderEventArg const **Arg = pqueue_peek(DrawCallQueue);
@@ -349,6 +350,9 @@ EStatus PInst_RQueueText(
     ev->Data.Text.rgba = *rgba;
     ev->Data.Text.Str = strref;
     ev->Data.Text.StrLen = len;
+    ev->Data.Text.Font = Font;
+
+    ev->Type = ERET_TEXT;
 
     return Result ? STATUS_OK : ERROR_FAILED;
 }
