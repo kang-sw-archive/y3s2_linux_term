@@ -256,6 +256,11 @@ EStatus PInst_Flip(struct ProgramInstance *s)
     s->ActiveBufferIndex = pinst_next_buff_idx(s);
     s->ActiveCameraTransform = s->PendingCameraTransform;
     lvlog(LOGLEVEL_VERBOSE + 100, "Buffer Successfully Flipped. Active Buffer : %d\n", s->ActiveBufferIndex);
+
+    // Wait until rendering process begin.
+    while (((volatile struct ProgramInstance *)s)->RendererStatus == RENDERER_IDLE)
+    {
+    };
     return STATUS_OK;
 }
 
@@ -292,6 +297,7 @@ static void pinst_renderer_translate_camera(FTransform2 *dst, FTransform2 const 
         *dst = *obj;
         dst->P.x += Aspect * 0.5f;
         dst->P.y += 0.5f;
+        dst->R *= ANG_TO_RAD;
     }
     else
     {

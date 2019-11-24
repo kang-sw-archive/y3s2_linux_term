@@ -10,20 +10,20 @@
 2. [x] Resource system 정의
 3. [ ] Rendering Interface 정의 
    1. [x] Rendering Loop
-   2. [ ] Queueing Draw Calls 
+   2. [x] Queueing Draw Calls 
       1. [x] Image Draw
-      2. [ ] Font Draw
+      2. [x] Font Draw
       3. [ ] Rectangle Draw
-   3. [ ] Translation Algorithm ... 
+   3. [x] Translation Algorithm ... 
          - Transform에서 Position은, 카메라의 위치를 빼고, 회전시킨 뒤, 스케일하여 구함.
          - 렌더링 시점에서(cairo), 먼저 Transform의 Scale Factor를 이용해 종횡 이미지 스케일
          - Rotate Factor로 이미지 회전시킨 후
          - 위에서 구한 Position에 그린다 ... 단, 중점이 되어야 하므로 이를 고려.
 4. [ ] Global Function Timer 구현.
    * 단, 게임 스레드에서 실행되게끔.
-5. [ ] Rendering Implementation
-   1. [ ] 이미지 렌더
-   2. [ ] 폰트 렌더
+5. [x] Rendering Implementation
+   1. [x] 이미지 렌더
+   2. [x] 폰트 렌더
    3. [ ] 랙탱글 렌더
 6. [ ] Delegate 구현
    * Game Object는 Handle을 통해서 

@@ -223,9 +223,10 @@ void Internal_PInst_Draw(void *hFB, struct RenderEventArg const *Arg, int Active
 
         // @todo. Scale
 
+#if defined(PINST_RENDER_ALLOW_ROTATION)
         cairo_rotate(cr, tr.R);
+#endif
         cairo_set_source_surface(cr, rsrc, -w / 2, -h / 2);
-        // cairo_set_source_surface(cr, rsrc, 0, 0);
         cairo_paint(cr);
     }
     break;

@@ -109,6 +109,8 @@ int main(int argc, char *argv[])
     FTransform2 trtext = FTransform2_Zero();
     trtext.S = (FVec2float){32.f, 32.f};
 
+    char buf[1024];
+
     // Main program loop
     while (g_bRun)
     {
@@ -129,7 +131,7 @@ int main(int argc, char *argv[])
         // @todo.
 
         // ~~ TEST CODE ~~
-        PInst_RQueueImage(program, 0, &trsample, rsrc, true);
+        PInst_RQueueImage(program, 0, &trsample, rsrc, false);
         trsample.P.x += DESIRED_DELTA_TIME * 0.1;
         trsample.P.y += DESIRED_DELTA_TIME * 0.1;
 
@@ -139,10 +141,11 @@ int main(int argc, char *argv[])
             trsample.P.y = 0;
         }
         trsample.R += 0.5f;
-        // camtr.R -= 0.5f;
+        camtr.R += 5.f;
 
         FColor v = {1, 0, 0, 1};
-        PInst_RQueueText(program, 1, &trtext, font, "hello, world!", &v, true);
+        sprintf(buf, "Delta Time: %f\n", delta);
+        PInst_RQueueText(program, 1, &trtext, font, buf, &v, true);
 
         PInst_SetCameraTransform(program, &camtr);
         // ~~~~~~~~~~~~~~~
