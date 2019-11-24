@@ -11,6 +11,9 @@
 3. [ ] Rendering Interface 정의 
    1. [x] Rendering Loop
    2. [ ] Queueing Draw Calls 
+      1. [x] Image Draw
+      2. [ ] Font Draw
+      3. [ ] Rectangle Draw
    3. [ ] Translation Algorithm ... 
          - Transform에서 Position은, 카메라의 위치를 빼고, 회전시킨 뒤, 스케일하여 구함.
          - 렌더링 시점에서(cairo), 먼저 Transform의 Scale Factor를 이용해 종횡 이미지 스케일

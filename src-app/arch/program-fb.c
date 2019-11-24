@@ -205,11 +205,6 @@ void Internal_PInst_Predraw(void *hFB, int ActiveBuffer)
     size_t h = cairo_image_surface_get_height(surf_bck);
 
     memset(d, 0xff, strd * h);
-    for (size_t i = 0; i < 54; i++)
-    {
-        /* code */
-        d[i * strd / 4 + 53] = 0;
-    }
 
     // Create context for buff
     fb->context = cairo_create(surf_bck);
@@ -222,23 +217,23 @@ void Internal_PInst_Draw(void *hFB, struct RenderEventArg const *Arg, int Active
 
     // Translate location
     FTransform2 tr = Arg->Transform;
-    tr.P.x *= fb->w;
+    tr.P.x *= fb->h;
     tr.P.y *= fb->h;
-    // cairo_translate(cr, tr.P.x, tr.P.y);
+    cairo_translate(cr, tr.P.x, tr.P.y);
 
     switch (Arg->Type)
     {
     case ERET_IMAGE:
     {
         cairo_surface_t *rsrc = Arg->Data.Image.Image->data;
-        size_t w = cairo_image_surface_get_width(rsrc);
-        size_t h = cairo_image_surface_get_height(rsrc);
+        int w = cairo_image_surface_get_width(rsrc);
+        int h = cairo_image_surface_get_height(rsrc);
 
         // @todo. Scale
-        // @todo. Rotate
 
-        // cairo_set_source_surface(cr, rsrc, -w / 2, -h / 2);
-        cairo_set_source_surface(cr, rsrc, 0, 0);
+        cairo_rotate(cr, tr.R);
+        cairo_set_source_surface(cr, rsrc, -w / 2, -h / 2);
+        // cairo_set_source_surface(cr, rsrc, 0, 0);
         cairo_paint(cr);
     }
     break;

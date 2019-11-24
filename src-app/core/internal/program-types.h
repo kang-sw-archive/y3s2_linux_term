@@ -75,20 +75,20 @@ struct RenderEventData_Text
     size_t StrLen;
     // Name of this argument will indicate the string address.
     char str[4];
-    uint8_t rgba[4];
+    FColor rgba;
 };
 
 struct RenderEventData_Polylines
 {
     struct Resource *PolyLines;
-    uint8_t rgba[4];
+    FColor rgba;
 };
 
 struct RenderEventData_Rectangle
 {
     int32_t x0, y0;
     int32_t x1, y1;
-    uint8_t rgba[4];
+    FColor rgba;
 };
 
 struct RenderEventData_IMAGE

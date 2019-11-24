@@ -93,6 +93,7 @@ int main(int argc, char *argv[])
     }
 
     FTransform2 trsample = FTransform2_Zero();
+    FTransform2 camtr = FTransform2_Zero();
 
     // Instantiate Game State.
     // @todo.
@@ -118,6 +119,17 @@ int main(int argc, char *argv[])
 
         // ~~ TEST CODE ~~
         PInst_RQueueImage(program, 0, &trsample, rsrc);
+        trsample.P.x += DESIRED_DELTA_TIME * 0.1;
+        trsample.P.y += DESIRED_DELTA_TIME * 0.1;
+
+        if (trsample.P.x > 0.5f)
+        {
+            trsample.P.x = 0;
+            trsample.P.y = 0;
+        }
+        trsample.R += 0.5f;
+        // camtr.R -= 0.5f;
+        PInst_SetCameraTransform(program, &camtr);
         // ~~~~~~~~~~~~~~~
 
         // Flip Buffer

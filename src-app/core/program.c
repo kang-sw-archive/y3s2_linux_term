@@ -281,11 +281,13 @@ static bool pinst_push_render_event(UProgramInstance *s, FRenderEventArg *ref)
     return true;
 }
 
+#define ANG_TO_RAD (M_PI / 180.0)
+#define M_PI 3.14159265358979323846 /* pi */
 static void pinst_renderer_translate_camera(FTransform2 *dst, FTransform2 const *obj, FTransform2 const *cam, float Aspect)
 {
     // Position should be handled carefully, since its drawing origin changes by camera state.
-    FVec2float P = VEC2_SUB(float, cam->P, obj->P);
-    P = FVec2f_Rotate(&P, cam->R);
+    FVec2float P = VEC2_SUB(float, obj->P, cam->P);
+    P = FVec2f_Rotate(&P, cam->R * ANG_TO_RAD);
     P = VEC2_MUL(float, P, cam->S);
 
     // To Camera Transform
@@ -294,7 +296,7 @@ static void pinst_renderer_translate_camera(FTransform2 *dst, FTransform2 const 
 
     dst->P = P;
     dst->S = VEC2_MUL(float, cam->S, obj->S);
-    dst->R = cam->R - obj->R;
+    dst->R = (cam->R - obj->R) * ANG_TO_RAD;
 }
 
 static FRenderEventArg *pinst_queue_render_event_arg(UProgramInstance *s, int32_t Layer, FTransform2 const *Tr, bool *retv)
@@ -315,5 +317,38 @@ EStatus PInst_RQueueImage(struct ProgramInstance *PInst, int32_t Layer, FTransfo
     ev->Data.Image.Image = Image;
     ev->Type = ERET_IMAGE;
 
-    return Result;
+    return Result ? STATUS_OK : ERROR_FAILED;
+}
+
+EStatus PInst_RQueueText(
+    struct ProgramInstance *s,
+    int32_t Layer,
+    FTransform2 const *Tr,
+    struct Resource *Font,
+    char const *String,
+    COLORREF rgba)
+{
+    bool Result;
+    FRenderEventArg *ev;
+    ev = pinst_queue_render_event_arg(s, Layer, Tr, &Result);
+
+    // Copy string.
+    int active = s->ActiveBufferIndex;
+    char *bf = s->RenderStringPool[active];
+    char const *strref = bf;
+    size_t head = s->StringPoolHeadIndex[active];
+    while (*String)
+    {
+        bf[head++] = *String++;
+    }
+    size_t len = &bf[head] - strref;
+    bf[head++] = '\0';
+    s->StringPoolHeadIndex[active] = head;
+
+    // Setup data
+    ev->Data.Text.rgba = *rgba;
+    ev->Data.Text.Str = strref;
+    ev->Data.Text.StrLen = len;
+
+    return Result ? STATUS_OK : ERROR_FAILED;
 }
