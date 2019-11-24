@@ -238,8 +238,8 @@ void Internal_PInst_Draw(void *hFB, struct RenderEventArg const *Arg, int Active
         // @todo. Rotate
 
         // cairo_set_source_surface(cr, rsrc, -w / 2, -h / 2);
-        // cairo_set_source_surface(cr, rsrc, 0, 0);
-        // cairo_paint(cr);
+        cairo_set_source_surface(cr, rsrc, 0, 0);
+        cairo_paint(cr);
     }
     break;
 
