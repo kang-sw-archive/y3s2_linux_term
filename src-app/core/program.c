@@ -241,6 +241,7 @@ EStatus PInst_UpdateTimer(struct ProgramInstance *PInst, float DeltaTime)
     // Update accumulated time.
     PInst->TotalTime += DeltaTime;
     size_t ms = (size_t)(PInst->TotalTime * 1000.0);
+    PInst->TotalTimeMs = ms;
 
     // Update Timer
     timer_update(&PInst->Timer, ms);
@@ -313,6 +314,22 @@ static void pinst_renderer_translate_camera(FTransform2 *dst, FTransform2 const 
         dst->S = VEC2_MUL(float, cam->S, obj->S);
         dst->R = (cam->R - obj->R) * ANG_TO_RAD;
     }
+}
+
+timer_handle_t PInst_QueueTimer(struct ProgramInstance *PInst, void (*Callback)(void *), void *CallbackArg, size_t delay_ms)
+{
+    return timer_add(&PInst->Timer, PInst->TotalTimeMs + delay_ms, Callback, CallbackArg);
+}
+
+bool PInst_AbortTimer(struct ProgramInstance *PInst, timer_handle_t handle)
+{
+    return timer_erase(&PInst->Timer, handle);
+}
+
+size_t PInst_GetTimerDelayLeft(struct ProgramInstance *PInst, timer_handle_t handle)
+{
+    timer_info_t *info = timer_browse(&PInst->Timer, handle);
+    return info ? info->triggerTime - PInst->TotalTimeMs : 0;
 }
 
 static FRenderEventArg *pinst_queue_render_event_arg(UProgramInstance *s, int32_t Layer, FTransform2 const *Tr, bool *retv, bool bAbsolute)

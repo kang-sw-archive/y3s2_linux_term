@@ -47,6 +47,7 @@ struct ProgramInstance
 
     // Timer functionality
     timer_logic_t Timer;
+    size_t TotalTimeMs;
     double TotalTime;
 };
 
