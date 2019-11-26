@@ -1,5 +1,7 @@
 #include "core/program.h"
 
+// -- ALL STATIC DATA REQUIRED
+// --------------------------------------------------------------
 enum CurrentGameState
 {
     GAME_TITLE = 1,
@@ -8,13 +10,20 @@ enum CurrentGameState
     GAME_PLAY
 } GameState;
 
-static void OnGameTitle(float DeltaTime);
-static void OnGameRanking(float DeltaTime);
-static void OnGameOver(float DeltaTime);
-static void OnGamePlay(float DeltaTime);
+// -- WIDGET OBJECT QUEUE
 
-void OnRun()
+// --------------------------------------------------------------
+
+static void UpdateOnGameTitle(float DeltaTime);
+static void UpdateOnGameRanking(float DeltaTime);
+static void UpdateOnGameOver(float DeltaTime);
+static void UpdateOnGamePlay(float DeltaTime);
+
+void OnInitGame()
 {
+    GameState = GAME_TITLE;
+
+    // Initialize
 }
 
 void OnUpdate(float DeltaTime)
@@ -22,19 +31,32 @@ void OnUpdate(float DeltaTime)
     switch (GameState)
     {
     case GAME_TITLE:
-        OnGameTitle(DeltaTime);
+        UpdateOnGameTitle(DeltaTime);
         break;
     case GAME_RANKING:
-        OnGameRanking(DeltaTime);
+        UpdateOnGameRanking(DeltaTime);
         break;
     case GAME_OVER:
-        OnGameOver(DeltaTime);
+        UpdateOnGameOver(DeltaTime);
         break;
     case GAME_PLAY:
-        OnGamePlay(DeltaTime);
+        UpdateOnGamePlay(DeltaTime);
         break;
 
     default:
         break;
     }
+}
+
+static void UpdateOnGameTitle(float DeltaTime)
+{
+}
+static void UpdateOnGameRanking(float DeltaTime)
+{
+}
+static void UpdateOnGameOver(float DeltaTime)
+{
+}
+static void UpdateOnGamePlay(float DeltaTime)
+{
 }

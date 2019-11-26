@@ -154,6 +154,9 @@ struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init)
     uassert(inst->AspectRatio);
     lvlog(LOGLEVEL_INFO, "Aspect ratio value: %f\n", inst->AspectRatio);
 
+    // Initialize sound
+    inst->hSound = Internal_PInst_InitSound(inst);
+
     // Initialize camera transforms
     inst->ActiveCameraTransform = FTransform2_Zero();
     inst->PendingCameraTransform = FTransform2_Zero();
@@ -276,6 +279,8 @@ void PInst_Destroy(struct ProgramInstance *PInst)
     pthread_join(PInst->ThreadHandle, NULL);
     Internal_PInst_DeinitFB(PInst, hFB);
 
+    Internal_PInst_DeinitSound(PInst->hSound);
+
     lvlog(LOGLEVEL_INFO, "Successfully destroied.\n");
 }
 
@@ -391,4 +396,10 @@ EStatus PInst_RQueueText(
     ev->Type = ERET_TEXT;
 
     return Result ? STATUS_OK : ERROR_FAILED;
+}
+
+EStatus PInst_QueuePlayWave(struct ProgramInstance *PInst, struct Resource *Wav, float Volume)
+{
+    Internal_PInst_PlayWav(PInst->hSound, Wav->data, Volume);
+    return STATUS_OK;
 }

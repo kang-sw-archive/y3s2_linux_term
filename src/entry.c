@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
     // ~~~~~~~~~~~~~~~ TEST
 
     void OnUpdate(float DeltaTime);
-    OnRun();
+    OnInitGame();
 
     // Main program loop
     while (g_bRun)

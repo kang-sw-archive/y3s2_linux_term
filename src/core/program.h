@@ -196,7 +196,7 @@ EStatus PInst_QueuePlayWave(struct ProgramInstance *PInst, struct Resource *Wav,
 void *Internal_PInst_InitFB(struct ProgramInstance *Inst, char const *fb);
 void Internal_PInst_DeinitFB(struct ProgramInstance *Inst, void *hFB);
 void *Internal_PInst_InitSound(struct ProgramInstance *Inst);
-void Internal_PInst_DeinitSound(struct ProgramInstance *Inst);
+void Internal_PInst_DeinitSound(void *hSound);
 void *Internal_PInst_LoadImgInternal(struct ProgramInstance *Inst, char const *Path);
 void *Internal_PInst_LoadFont(struct ProgramInstance *Inst, char const *Path, LOADRESOURCE_FLAG_T FontFlag);
 void *Internal_PInst_LoadWav(struct ProgramInstance *Inst, char const *Path);
