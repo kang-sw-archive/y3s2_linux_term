@@ -184,32 +184,43 @@ EStatus PInst_RQueueRect(struct ProgramInstance *PInst, int32_t Layer, FTransfor
  */
 EStatus PInst_RQueueImage(struct ProgramInstance *PInst, int32_t Layer, FTransform2 const *Tr, struct Resource *Image, bool bAbsolute);
 
+/*! \brief Queue playing wave data.
+    \param PInst 
+    \param Wav 
+    \param Volume 
+    \return 
+ */
+EStatus PInst_QueuePlayWave(struct ProgramInstance *PInst, struct Resource *Wav, float Volume);
+
 // For library implementations
 void *Internal_PInst_InitFB(struct ProgramInstance *Inst, char const *fb);
-void Internal_PInst_DeinitFB(struct ProgramInstance *Inst, void *hFB); // @todo.
+void Internal_PInst_DeinitFB(struct ProgramInstance *Inst, void *hFB);
+void *Internal_PInst_InitSound(struct ProgramInstance *Inst);
+void Internal_PInst_DeinitSound(struct ProgramInstance *Inst);
 void *Internal_PInst_LoadImgInternal(struct ProgramInstance *Inst, char const *Path);
 void *Internal_PInst_LoadFont(struct ProgramInstance *Inst, char const *Path, LOADRESOURCE_FLAG_T FontFlag);
+void *Internal_PInst_LoadWav(struct ProgramInstance *Inst, char const *Path);
 void *Internal_PInst_FreeAllResource(struct Resource *rsrc); // @todo.
-// Forward declaration to render;
-struct RenderEventArg;
-void Internal_PInst_Predraw(void *hFB, int ActiveBuffer);                                // @todo.
-void Internal_PInst_Draw(void *hFB, struct RenderEventArg const *Arg, int ActiveBuffer); // @todo.
-void Internal_PInst_Flush(void *hFB, int ActiveBuffer);                                  // @todo.
+void Internal_PInst_Predraw(void *hFB, int ActiveBuffer);
+void Internal_PInst_Draw(void *hFB, struct RenderEventArg const *Arg, int ActiveBuffer);
+void Internal_PInst_Flush(void *hFB, int ActiveBuffer);
+void Internal_PInst_PlayWav(void *hSound, void *WavData, float Volume);
 
 //! Program status
-enum
+enum ERendererState
 {
     RENDERER_IDLE = 0,
     RENDERER_BUSY = 1,
     ERROR_RENDERER_INVALID = -1
 };
 
-enum
+enum EResourceType
 {
     RESOURCE_NONE,
     RESOURCE_LINEVECTOR,
     RESOURCE_IMAGE,
-    RESOURCE_FONT
+    RESOURCE_FONT,
+    RESOURCE_WAV,
 };
 
 typedef struct Resource UResource;

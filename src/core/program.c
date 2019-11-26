@@ -87,6 +87,9 @@ EStatus PInst_LoadResource(struct ProgramInstance *PInst, EResourceType Type, FH
     case RESOURCE_FONT:
         data = Internal_PInst_LoadFont(PInst, Path, Flag);
         break;
+    case RESOURCE_WAV:
+        data = Internal_PInst_LoadWav(PInst, Path);
+        break;
     default:
         lvlog(LOGLEVEL_WARNING, "That type of resource is not defined ! \n");
         data = NULL;

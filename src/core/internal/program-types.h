@@ -9,6 +9,9 @@ struct ProgramInstance
     // Frame buffer handle. Also used to trigger thread shutdown.
     void *hFB;
 
+    // Sound manageer handle.
+    void *hSound;
+
     // Aspect ratio of screen. Used in translation.
     float AspectRatio;
 
