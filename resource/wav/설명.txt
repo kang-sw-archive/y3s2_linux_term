@@ -1,0 +1,23 @@
+bgm 폴더
+
+bgm1 이랑 bgm2 중에 하나 시작화면 bgm
+bgm3 는 게임 중 bgm 하면 될듯
+
+
+
+sword 폴더
+
+sword_miss 는 빈공간 밸때
+sword_cut 은 과일 밸 때
+
+둘 중 하나만 쓰거나 랜덤으로 나오게 해도 될듯
+
+
+
+appearace : 과일 나올 때
+click : 버튼 누를 때
+clock : 시간 얼마 안남았을 때
+coutdown : 5초 남았을 때
+game_end : 게임 끝
+get_score : 점수 얻을 때? (안넣어도 될듯)
+start : 게임 시작 할 때

@@ -249,10 +249,10 @@ void Internal_PInst_Draw(void *hFB, struct RenderEventArg const *Arg, int Active
         cairo_font_face_t *font = Arg->Data.Text.Font->data;
         cairo_set_font_face(cr, font);
         FColor c = Arg->Data.Text.rgba;
-        cairo_set_source_rgba(cr, c.R, c.G, c.B, c.A);
+        cairo_set_source_rgba(cr, c.B, c.G, c.R, c.A);
         // cairo_set_source_rgba(cr, 1, 0, 0, 1);
+        // cairo_rotate(cr, tr.R);
         cairo_set_font_size(cr, (tr.S.x + tr.S.y) * .5f);
-        cairo_rotate(cr, tr.R);
         cairo_show_text(cr, Arg->Data.Text.Str);
     }
     break;
@@ -283,7 +283,7 @@ FVec2float PInst_ScreenToWorld(struct ProgramInstance *s, int x, int y)
 {
     program_cairo_wrapper_t *fb = s->hFB;
     float aspect = s->AspectRatio;
-    float xf = x / fb->w - aspect * 0.5f;
+    float xf = x / fb->w - 0.5f;
     float yf = y / fb->h - 0.5f;
 
     return (FVec2float){.x = xf, .y = yf};

@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <linux/input.h>
 #include <signal.h>
+#include <cairo.h>
 
 #define countof(v) (sizeof(v) / sizeof(*v))
 // #### DECLARATIONS ####
@@ -36,7 +37,7 @@
 // -- INPUT PROCEDURE
 // -- INPUT PROCEDURE
 #define EVENT_DEVICE "/dev/input/event0"
-#define Max_Input_Event 32
+#define Max_Input_Event 128
 #define MAX_ASYNC_INPUT_EVENT 256
 
 static void *InputProcedure(void *dev);
@@ -72,7 +73,6 @@ typedef struct touchinput
     int16_t x, y;
     int8_t type;
     int8_t slot;
-    int16_t padding;
 } touchinput_t;
 
 // -- ALL STATIC DATA REQUIRED
@@ -90,11 +90,16 @@ int GameState;
 
 extern bool g_bRun;
 pthread_t ghInputProcThr;
-pthread_mutex_t gEventListLock;
-struct fslist gInputEvents;
+touchinput_t gInputEventQueue[MAX_ASYNC_INPUT_EVENT];
+size_t gInputEventSubmitIdx;
+size_t gInputEventRecvIdx;
+extern UProgramInstance *g_pInst;
 
 // -- WIDGET OBJECT QUEUE
 
+// -- Global Resource Handles
+cairo_surface_t *rsrcBackground;
+UResource *rsrcDefaultFont;
 // --------------------------------------------------------------
 
 // Update methods
@@ -138,20 +143,26 @@ void OnInitGame()
     // Initialize Input Device
     // Initialize input event queue
     size_t buffsz = MAX_ASYNC_INPUT_EVENT * (sizeof(touchinput_t) + FSLIST_NODE_SIZE);
-    fslist_init(&gInputEvents, malloc(buffsz), buffsz, sizeof(touchinput_t));
 
     // Before create thread, initialize mutex first.
-    pthread_mutex_init(&gEventListLock, NULL);
     pthread_create(&ghInputProcThr, NULL, InputProcedure, EVENT_DEVICE);
     lvlog(LOGLEVEL_INFO, "Successfully initialized input device.\n");
+
+    // Load resources
+    PInst_LoadResource(
+        g_pInst,
+        RESOURCE_FONT,
+        hash_djb2("DefaultFont"),
+        "Ubuntu Mono",
+        LOADRESOURCE_FLAG_FONT_DEFAULT);
+    rsrcDefaultFont = PInst_GetResource(g_pInst, hash_djb2("DefaultFont"));
+    if (rsrcDefaultFont == NULL)
+        lvlog(LOGLEVEL_ERROR, "Failed to load default font resource.\n");
 }
 
 void OnDestroyGameInstance()
 {
     pthread_join(ghInputProcThr, NULL);
-    pthread_mutex_destroy(&gEventListLock);
-
-    free(fslist_destroy(&gInputEvents));
 }
 
 void OnUpdate(float DeltaTime)
@@ -179,10 +190,38 @@ void OnUpdate(float DeltaTime)
 
 static void UpdateOnGameTitle(float DeltaTime)
 {
-    static bool stats[10];
-    touchinput_t input[32];
+    static bool bColorSet = false;
+    static FColor color_rand[10];
+    touchinput_t input[128];
+    if (bColorSet == false)
+    {
+        for (size_t i = 0; i < countof(color_rand); i++)
+            color_rand[i] = (FColor){.A = 1, .R = 1, .G = rand() / (float)RAND_MAX, .B = rand() / (float)RAND_MAX};
+        bColorSet = true;
+    }
 
     size_t num = DequeueInputEvent(input, countof(input));
+
+    FTransform2 tr = FTransform2_Zero();
+    tr.S = (FVec2float){32.0f, 32.0f};
+
+    FColor C = {.A = 1, .R = 1, .G = 0, .B = 0};
+    char buff[1024];
+    for (size_t i = 0; i < num; i++)
+    {
+        tr.P = PInst_ScreenToWorld(g_pInst, input[i].x, input[i].y);
+        // printf("(slot %d) [%d %d] -> [%f %f]\n",
+        //        input[num].slot,
+        //        input[num].x, input[num].y,
+        //        tr.P.x, tr.P.y);
+
+        sprintf(buff,
+                "(slot %d) [%d %d] -> [%f %f] .. NumEvent %d",
+                input[i].slot,
+                input[i].x, input[i].y,
+                tr.P.x, tr.P.y, num);
+        PInst_RQueueText(g_pInst, 0, &tr, rsrcDefaultFont, buff, color_rand + input[i].slot, true);
+    }
 }
 
 static void UpdateOnGameRanking(float DeltaTime)
@@ -227,7 +266,6 @@ static void *InputProcedure(void *dev)
     int slot_selection = 0;
     memset(slots, 0, sizeof(slots));
     touchinput_t input;
-    int LastEventType = 0;
 
     while (g_bRun)
     {
@@ -245,13 +283,23 @@ static void *InputProcedure(void *dev)
         }
 
         // Read input
-        bytesRead = read(fd, ev, sizeof(ev));
-        numRead = bytesRead / sizeof(*ev);
-
-        if (bytesRead - numRead * sizeof(*ev) != 0)
+        for (bytesRead = 0;;)
         {
-            lvlog(LOGLEVEL_ERROR, "Invalid size of data %d has read. It must be multiplicand of %d\n", bytesRead, sizeof(*ev));
-            g_bRun = false;
+            bytesRead += read(fd, (char *)ev + bytesRead, sizeof(*ev));
+            numRead = bytesRead / sizeof(*ev);
+
+            if (bytesRead - numRead * sizeof(*ev) != 0)
+            {
+                lvlog(LOGLEVEL_ERROR, "Invalid size of data %d has read. It must be multiplicand of %d\n", bytesRead, sizeof(*ev));
+                g_bRun = false;
+                break;
+            }
+
+            if (ev[numRead - 1].type == EV_SYN || bytesRead == sizeof(ev))
+            {
+                --numRead;
+                break;
+            }
         }
 
         // static char const *ABS_MSG[] = {"ABS_MT_RESERVED", "ABS_MT_SLOT", "ABS_MT_TOUCH_MAJOR", "ABS_MT_TOUCH_MINOR", "ABS_MT_WIDTH_MAJOR", "ABS_MT_WIDTH_MINOR", "ABS_MT_ORIENTATION", "ABS_MT_POSITION_X", "ABS_MT_POSITION_Y", "ABS_MT_TOOL_TYPE", "ABS_MT_BLOB_ID", "ABS_MT_TRACKING_ID", "ABS_MT_PRESSURE", "ABS_MT_DISTANCE", "ABS_MT_TOOL_X", "ABS_MT_TOOL_Y"};
@@ -272,10 +320,13 @@ static void *InputProcedure(void *dev)
                     break;
                 case ABS_MT_SLOT:
                     // printf("SLOT TRANSITION - %d\n", ph->value);
-                    slot_selection = ph->value;
+                    if (ph->value >= 0)
+                        slot_selection = ph->value;
+                    slots[slot_selection].bDirty = true;
                     break;
                 case ABS_MT_TRACKING_ID:
                     // printf("TRACKING TRANSITION - slot %d: %d\n", slot_selection, ph->value);
+                    slots[slot_selection].bDirty = true;
                     if (ph->value != -1)
                     {
                         slots[slot_selection].bPressing = true;
@@ -287,18 +338,19 @@ static void *InputProcedure(void *dev)
                     }
                     break;
                 case ABS_MT_POSITION_X:
-                    // printf("X ABS VAL - %d \n", ph->value);
+                    // printf("X ABS VAL - %-10d \n", ph->value);
+                    slots[slot_selection].bDirty = true;
                     slots[slot_selection].x = ph->value;
                     break;
                 case ABS_MT_POSITION_Y:
-                    // printf("Y ABS VAL - %d\n", ph->value);
+                    // printf("Y ABS VAL - %10d\n", ph->value);
+                    slots[slot_selection].bDirty = true;
                     slots[slot_selection].y = ph->value;
                     break;
                 default:
                     // printf("Unhandled ABS EVENT, for value %d\n", ph->value);
                     break;
                 }
-                slots[slot_selection].bDirty = true;
                 break;
             case EV_SYN:
                 // printf("-- SYNC EVENT RECEIVE -- \n");
@@ -311,7 +363,6 @@ static void *InputProcedure(void *dev)
                 lvlog(LOGLEVEL_INFO, "UNHANDLED EV TYPE: %d\n", ph->type);
                 break;
             }
-            LastEventType = ph->type;
         }
 
         // Iterate all slots and find slot with dirty flag.
@@ -357,31 +408,24 @@ static void *InputProcedure(void *dev)
 
 void EnqueueInputEvent(struct touchinput const *ev)
 {
+    static const size_t idx_add[2] = {1, 1 - countof(gInputEventQueue)};
     // static const char *TOUCHEV_STR[] = {"DOWN", "UP", "MV"};
     // logprintf("slot %d - %s, [%d, %d] \n", ev->slot, TOUCHEV_STR[ev->type], ev->x, ev->y);
-
-    pthread_mutex_lock(&gEventListLock);
-    if (gInputEvents.size >= MAX_ASYNC_INPUT_EVENT)
-        fslist_erase(&gInputEvents, &gInputEvents.get[gInputEvents.head]);
-    memcpy(fslist_data(&gInputEvents, fslist_insert(&gInputEvents, NULL)), ev, sizeof(*ev));
-    pthread_mutex_unlock(&gEventListLock);
+    gInputEventQueue[gInputEventSubmitIdx] = *ev;
+    gInputEventSubmitIdx += idx_add[gInputEventSubmitIdx == countof(gInputEventQueue) - 1];
 }
 
 size_t DequeueInputEvent(struct touchinput *ev, size_t max)
 {
-    pthread_mutex_lock(&gEventListLock);
-    size_t out = gInputEvents.size < max ? gInputEvents.size : max;
+    static const size_t idx_add[2] = {1, 1 - countof(gInputEventQueue)};
+    size_t out = 0;
 
-    // Copy input events to array
-    while (out--)
+    for (;
+         out <= max && gInputEventRecvIdx != gInputEventSubmitIdx;
+         ++out, gInputEventRecvIdx += idx_add[gInputEventRecvIdx == countof(gInputEventQueue) - 1])
     {
-        struct fslist_node *n = &gInputEvents.get[gInputEvents.head];
-        *ev++ = *(touchinput_t *)fslist_data(&gInputEvents, n);
-        fslist_erase(&gInputEvents, n);
-        static const char *TOUCHEV_STR[] = {"DOWN", "UP", "MV"};
-        logprintf("slot %d - %s, [%d, %d] \n", (ev - 1)->slot, TOUCHEV_STR[(ev - 1)->type], (ev - 1)->x, (ev - 1)->y);
+        *ev++ = gInputEventQueue[gInputEventRecvIdx];
     }
-    pthread_mutex_unlock(&gEventListLock);
 
     return out;
 }

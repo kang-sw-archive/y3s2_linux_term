@@ -19,8 +19,8 @@ include_directories("/usr/include/cairo")
 aux_source_directory(src SRC_APP)
 aux_source_directory(src/core SRC_CORE)
 
-set(FBG_SRC_DIR "${CMAKE_SOURCE_DIR}/third/fbg/src")
-set(FBG_SRC ${FBG_SRC_DIR}/fbgraphics.c ${FBG_SRC_DIR}/nanojpeg/nanojpeg.c ${FBG_SRC_DIR}/lodepng/lodepng.c)
+# set(FBG_SRC_DIR "${CMAKE_SOURCE_DIR}/third/fbg/src")
+# set(FBG_SRC ${FBG_SRC_DIR}/fbgraphics.c ${FBG_SRC_DIR}/nanojpeg/nanojpeg.c ${FBG_SRC_DIR}/lodepng/lodepng.c)
 
 # General dependency
 link_libraries(m)

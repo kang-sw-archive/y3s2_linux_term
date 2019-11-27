@@ -150,6 +150,7 @@ struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init)
 
     // Load frame buffer
     inst->hFB = Internal_PInst_InitFB(inst, Init->FrameBufferDevFileName);
+
     // Aspect ratio must be set in InitFB function
     uassert(inst->AspectRatio);
     lvlog(LOGLEVEL_INFO, "Aspect ratio value: %f\n", inst->AspectRatio);
@@ -212,7 +213,7 @@ static void *RenderThread(void *VPInst)
     {
         // Wait until flip request.
         // This is notified via switching active buffer index value.
-        if (inst->ActiveBufferIndex == ActiveIdx)
+        if (((volatile UProgramInstance *)inst)->ActiveBufferIndex == ActiveIdx)
         {
             pthread_yield(NULL);
             continue;
