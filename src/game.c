@@ -207,21 +207,27 @@ static void UpdateOnGameTitle(float DeltaTime)
 
     FColor C = {.A = 1, .R = 1, .G = 0, .B = 0};
     char buff[1024];
+
+    // if (num > 0)
+    // printf("---------------- NumEv : %d\n", num);
     for (size_t i = 0; i < num; i++)
     {
         tr.P = PInst_ScreenToWorld(g_pInst, input[i].x, input[i].y);
-        // printf("(slot %d) [%d %d] -> [%f %f]\n",
-        //        input[num].slot,
-        //        input[num].x, input[num].y,
-        //        tr.P.x, tr.P.y);
 
+        // printf(
+        //     "\t %d --> (slot %d) [%d %d] -> [%f %f] \n", i,
+        //     input[i].slot,
+        //     input[i].x, input[i].y,
+        //     tr.P.x, tr.P.y);
         sprintf(buff,
-                "(slot %d) [%d %d] -> [%f %f] .. NumEvent %d",
+                "%d --> (slot %d) [%d %d] -> [%f %f] ", i,
                 input[i].slot,
                 input[i].x, input[i].y,
-                tr.P.x, tr.P.y, num);
+                tr.P.x, tr.P.y);
         PInst_RQueueText(g_pInst, 0, &tr, rsrcDefaultFont, buff, color_rand + input[i].slot, true);
+        sprintf(buff, "hello, world!");
     }
+    sprintf(buff, "hello, world!");
 }
 
 static void UpdateOnGameRanking(float DeltaTime)
@@ -322,11 +328,9 @@ static void *InputProcedure(void *dev)
                     // printf("SLOT TRANSITION - %d\n", ph->value);
                     if (ph->value >= 0)
                         slot_selection = ph->value;
-                    slots[slot_selection].bDirty = true;
                     break;
                 case ABS_MT_TRACKING_ID:
                     // printf("TRACKING TRANSITION - slot %d: %d\n", slot_selection, ph->value);
-                    slots[slot_selection].bDirty = true;
                     if (ph->value != -1)
                     {
                         slots[slot_selection].bPressing = true;
@@ -339,18 +343,17 @@ static void *InputProcedure(void *dev)
                     break;
                 case ABS_MT_POSITION_X:
                     // printf("X ABS VAL - %-10d \n", ph->value);
-                    slots[slot_selection].bDirty = true;
                     slots[slot_selection].x = ph->value;
                     break;
                 case ABS_MT_POSITION_Y:
                     // printf("Y ABS VAL - %10d\n", ph->value);
-                    slots[slot_selection].bDirty = true;
                     slots[slot_selection].y = ph->value;
                     break;
                 default:
                     // printf("Unhandled ABS EVENT, for value %d\n", ph->value);
                     break;
                 }
+                slots[slot_selection].bDirty = true;
                 break;
             case EV_SYN:
                 // printf("-- SYNC EVENT RECEIVE -- \n");
