@@ -196,7 +196,7 @@ static void UpdateOnGameTitle(float DeltaTime)
     if (bColorSet == false)
     {
         for (size_t i = 0; i < countof(color_rand); i++)
-            color_rand[i] = (FColor){.A = 1, .R = 1, .G = rand() / (float)RAND_MAX, .B = rand() / (float)RAND_MAX};
+            color_rand[i] = (FColor){.A = 1, .R = 0, .G = rand() / (float)RAND_MAX, .B = rand() / (float)RAND_MAX};
         bColorSet = true;
     }
 
@@ -386,7 +386,10 @@ static void *InputProcedure(void *dev)
                     // Handle duplicated up event ...
                     input.type = TOUCH_UP;
                     s->bUnpressed = false;
-                    s->bPressing = false;
+
+                    // To prevent re-enterring blocked...
+                    if (s->bPressed == false)
+                        s->bPressing = false;
                 }
                 else
                 {
