@@ -81,12 +81,18 @@ idx_next(size_t *idx)
     *idx += next_add[*idx == 1 - NUM_CHUNKS];
 }
 
-static void sound_procedure(void *hSound);
-static void sound_output(void *hSound);
+static void *sound_procedure(void *hSound);
+static void *sound_output(void *hSound);
 
 void *Internal_PInst_InitSound(struct ProgramInstance *Inst)
 {
     sound_t *s = malloc(sizeof(sound_t));
+    if (s == NULL)
+    {
+        lvlog(LOGLEVEL_ERROR, "Failed to allocate sufficient sound memory.\n");
+        return NULL;
+    }
+
     s->bActive = true;
 
     // Init queue
@@ -98,27 +104,32 @@ void *Internal_PInst_InitSound(struct ProgramInstance *Inst)
     {
         s->WavData[i] = NULL;
     }
-    pthread_cond_t cond;
-    pthread_cond_init(&cond, NULL);
-    pthread_create(&s->hProcThr, &cond, sound_procedure, s);
+    pthread_create(&s->hProcThr, NULL, sound_procedure, s);
 
     // Init output thread
-    pthread_create(&s->hProcThr, &cond, sound_output, s);
-    pthread_cond_destroy(&cond);
+    pthread_create(&s->hOutpThr, NULL, sound_output, s);
+
+    lvlog(LOGLEVEL_INFO, "Sound device has successfully initialized. ... \n");
 
     return s;
 }
 
 void Internal_PInst_DeinitSound(void *hSound)
 {
+    lvlog(LOGLEVEL_INFO, "Beginning Sound deinitialization ... \n");
     sound_t *s = hSound;
+    if (s == NULL)
+        return;
+
     s->bActive = false;
 
     pthread_join(s->hProcThr, NULL);
     pthread_join(s->hOutpThr, NULL);
 
     free(hSound);
+    lvlog(LOGLEVEL_INFO, "Sound deinitialized. \n");
 }
+
 void *Internal_PInst_LoadWav(struct ProgramInstance *Inst, char const *Path)
 {
 }
@@ -126,7 +137,7 @@ void Internal_PInst_PlayWav(void *hSound, void *WavData, float Volume)
 {
 }
 
-static void sound_procedure(void *hSound)
+static void *sound_procedure(void *hSound)
 {
     sound_t *s = hSound;
     size_t wav_in_idx = 0;
@@ -136,18 +147,22 @@ static void sound_procedure(void *hSound)
     while (s->bActive)
     {
         // Look for new wav to proceed ...
+        pthread_yield(NULL);
     }
 
     lvlog(LOGLEVEL_INFO, "Destroying sound procedure thread ... \n");
+    return NULL;
 }
 
-static void sound_output(void *hSound)
+static void *sound_output(void *hSound)
 {
     sound_t *s = hSound;
 
     while (s->bActive)
     {
+        pthread_yield(NULL);
     }
 
     lvlog(LOGLEVEL_INFO, "Destroying sound output thread ... \n");
+    return NULL;
 }

@@ -163,8 +163,10 @@ int main(int argc, char *argv[])
 
         lvlog(LOGLEVEL_VERBOSE + 1000, "Update() called. Cur time is %f\n", curtime);
     }
+    OnDestroyGameInstance();
     PInst_Destroy(program);
 
+    lvlog(LOGLEVEL_INFO, "Shutting down.\n");
     return 0;
 }
 

@@ -37,7 +37,7 @@
 #define EVENT_DEVICE "/dev/input/event0"
 #define Max_Input_Event 32
 
-static void InputProcedure(char const *dev);
+static void *InputProcedure(char const *dev);
 
 // -- ALL TYPE DEFINITIONS
 // -- ALL TYPE DEFINITIONS
@@ -177,7 +177,7 @@ static void UpdateOnGamePlay(float DeltaTime)
 {
 }
 
-static void InputProcedure(char const *dev)
+static void *InputProcedure(char const *dev)
 {
     int fd = open(dev, O_RDONLY);
     if (fd == -1)
@@ -231,4 +231,5 @@ static void InputProcedure(char const *dev)
 
     int ret = close(fd);
     lvlog(LOGLEVEL_INFO, "Destroied input device. Result: %d\n", ret);
+    return NULL;
 }

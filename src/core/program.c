@@ -279,7 +279,8 @@ void PInst_Destroy(struct ProgramInstance *PInst)
     pthread_join(PInst->ThreadHandle, NULL);
     Internal_PInst_DeinitFB(PInst, hFB);
 
-    Internal_PInst_DeinitSound(PInst->hSound);
+    if (PInst->hSound)
+        Internal_PInst_DeinitSound(PInst->hSound);
 
     lvlog(LOGLEVEL_INFO, "Successfully destroied.\n");
 }
