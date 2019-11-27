@@ -33,6 +33,8 @@ typedef struct
 
     float w, h;
     cairo_t *context;
+
+    rsrc_image_t *backgroundImgRsrc;
 } program_cairo_wrapper_t;
 
 static cairo_surface_t *cairo_linuxfb_surface_create(const char *fb_name);
@@ -41,6 +43,7 @@ void *Internal_PInst_InitFB(UProgramInstance *s, char const *fb)
 {
     program_cairo_wrapper_t *v = malloc(sizeof(program_cairo_wrapper_t));
     v->screen = cairo_linuxfb_surface_create(fb);
+    v->backgroundImgRsrc = NULL;
 
     size_t w = cairo_image_surface_get_width(v->screen);
     size_t h = cairo_image_surface_get_height(v->screen);
@@ -74,6 +77,7 @@ void Internal_PInst_DeinitFB(struct ProgramInstance *Inst, void *hFB)
         free(v->backbuffer_memory[i]);
     }
     cairo_surface_destroy(v->screen);
+    lvlog(LOGLEVEL_INFO, "Frame buffer has successfully deinitialized.\n");
 }
 
 void *Internal_PInst_LoadImgInternal(struct ProgramInstance *Inst, char const *Path)
@@ -194,7 +198,14 @@ void Internal_PInst_Predraw(void *hFB, int ActiveBuffer)
     size_t strd = cairo_image_surface_get_stride(surf_bck);
     size_t h = cairo_image_surface_get_height(surf_bck);
 
-    memset(d, 0xff, strd * h);
+    if (fb->backgroundImgRsrc)
+    {
+        // @todo.
+    }
+    else
+    {
+        memset(d, 0xff, strd * h);
+    }
 
     // Create context for buff
     fb->context = cairo_create(surf_bck);

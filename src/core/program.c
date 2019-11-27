@@ -238,7 +238,7 @@ static void *RenderThread(void *VPInst)
         inst->RendererStatus = RENDERER_IDLE;
     }
 
-    lvlog(LOGLEVEL_INFO, "Thread is shutting down\n");
+    lvlog(LOGLEVEL_INFO, "Rendering thread is shutting down\n");
     return NULL;
 }
 

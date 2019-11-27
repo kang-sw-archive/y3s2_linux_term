@@ -23,7 +23,7 @@
 #include <sys/time.h>
 
 #define DESIRED_DELTA_TIME (1.0 / 60.0)
-static bool g_bRun = true;
+bool g_bRun = true;
 static double g_TimeInSeconds;
 UProgramInstance *g_pInst;
 
@@ -113,6 +113,7 @@ int main(int argc, char *argv[])
     // ~~~~~~~~~~~~~~~ TEST
 
     void OnUpdate(float DeltaTime);
+    void OnDestroyGameInstance();
     OnInitGame();
 
     // Main program loop

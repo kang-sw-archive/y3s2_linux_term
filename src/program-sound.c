@@ -7,9 +7,8 @@
     
     \details
  */
-#include "core/program.h"
 #include <alsa/asoundlib.h>
-#include <pthread.h>
+#include "core/program.h"
 
 #define CHUNK_SIZE 1024
 #define STANDARD_SAMPLE_RATE 22050
@@ -138,6 +137,8 @@ static void sound_procedure(void *hSound)
     {
         // Look for new wav to proceed ...
     }
+
+    lvlog(LOGLEVEL_INFO, "Destroying sound procedure thread ... \n");
 }
 
 static void sound_output(void *hSound)
@@ -147,4 +148,6 @@ static void sound_output(void *hSound)
     while (s->bActive)
     {
     }
+
+    lvlog(LOGLEVEL_INFO, "Destroying sound output thread ... \n");
 }
