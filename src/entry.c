@@ -69,6 +69,7 @@ int main(int argc, char *argv[])
 
         g_pInst = program = PInst_Create(&init);
     }
+    uassert(g_pInst);
 
     // Timer to elapse delta time.
     struct timeval tv;

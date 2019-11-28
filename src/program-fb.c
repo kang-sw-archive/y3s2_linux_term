@@ -33,8 +33,6 @@ typedef struct
 
     float w, h;
     cairo_t *context;
-
-    rsrc_image_t *backgroundImgRsrc;
 } program_cairo_wrapper_t;
 
 static cairo_surface_t *cairo_linuxfb_surface_create(const char *fb_name);
@@ -43,7 +41,6 @@ void *Internal_PInst_InitFB(UProgramInstance *s, char const *fb)
 {
     program_cairo_wrapper_t *v = malloc(sizeof(program_cairo_wrapper_t));
     v->screen = cairo_linuxfb_surface_create(fb);
-    v->backgroundImgRsrc = NULL;
 
     size_t w = cairo_image_surface_get_width(v->screen);
     size_t h = cairo_image_surface_get_height(v->screen);
@@ -198,17 +195,19 @@ void Internal_PInst_Predraw(void *hFB, int ActiveBuffer)
     size_t strd = cairo_image_surface_get_stride(surf_bck);
     size_t h = cairo_image_surface_get_height(surf_bck);
 
-    if (fb->backgroundImgRsrc)
+    // Create context for buff
+    fb->context = cairo_create(surf_bck);
+
+    extern cairo_surface_t *gBackgroundSurface;
+    if (gBackgroundSurface)
     {
-        // @todo.
+        cairo_set_source_surface(fb->context, gBackgroundSurface, 0, 0);
+        cairo_paint(fb->context);
     }
     else
     {
         memset(d, 0xff, strd * h);
     }
-
-    // Create context for buff
-    fb->context = cairo_create(surf_bck);
 }
 
 void Internal_PInst_Draw(void *hFB, struct RenderEventArg const *Arg, int ActiveBuffer)
@@ -249,7 +248,7 @@ void Internal_PInst_Draw(void *hFB, struct RenderEventArg const *Arg, int Active
         cairo_font_face_t *font = Arg->Data.Text.Font->data;
         cairo_set_font_face(cr, font);
         FColor c = Arg->Data.Text.rgba;
-        cairo_set_source_rgba(cr, c.B, c.G, c.R, c.A);
+        cairo_set_source_rgba(cr, c.R, c.G, c.B, c.A);
         // cairo_set_source_rgba(cr, 1, 0, 0, 1);
         // cairo_rotate(cr, tr.R);
         cairo_set_font_size(cr, (tr.S.x + tr.S.y) * .5f);
@@ -273,10 +272,27 @@ void Internal_PInst_Flush(void *hFB, int ActiveBuffer)
 
     // Copy value to frame buffer
     cairo_surface_t *surf_bck = fb->backbuffer[ActiveBuffer];
-    cairo_t *frame = cairo_create(fb->screen);
-    cairo_set_source_surface(frame, surf_bck, 0, 0);
-    cairo_paint(frame);
-    cairo_destroy(frame);
+    //     cairo_t *frame = cairo_create(fb->screen);
+    //     cairo_set_source_surface(frame, surf_bck, 0, 0);
+    //     cairo_paint(frame);
+    //     cairo_destroy(frame);
+
+    uint32_t *dst = cairo_image_surface_get_data(fb->screen);
+    uint32_t *src = cairo_image_surface_get_data(surf_bck);
+    int x = cairo_image_surface_get_width(fb->screen);
+    int h = cairo_image_surface_get_height(fb->screen);
+    int sz = x * h;
+
+    // For each pxls ...
+    for (char *p, *s; sz--; ++dst, ++src)
+    {
+        p = dst;
+        s = src;
+        p[2] = s[0];
+        p[1] = s[1];
+        p[0] = s[2];
+        p[3] = s[3];
+    }
 }
 
 FVec2float PInst_ScreenToWorld(struct ProgramInstance *s, int x, int y)

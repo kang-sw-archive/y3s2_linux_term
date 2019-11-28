@@ -8,27 +8,4 @@
     \details
  */
 #pragma once
-#include "core/program.h"
-
-enum
-{
-    FRUIT_BOMB = -1,
-};
-typedef int EFruitPoint;
-
-typedef struct fruit
-{
-    FVec2float Position;
-    FVec2float Velocity;
-    UResource *Display;
-    EFruitPoint Point;
-} FFruit;
-
-typedef struct widget
-{
-    /*data*/
-    FVec2int Position;
-
-} FWidget;
-
-void UpdateFruit(FFruit *s, UProgramInstance *pinst, float DeltaTime);
+#include "game.h"

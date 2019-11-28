@@ -28,10 +28,12 @@ enum
 
 extern unsigned g_logLv;
 
-#define lvlog(lv, msg, ...)           \
-    if (lv <= g_logLv)                \
-    {                                 \
-        logprintf(msg, ##__VA_ARGS__) \
+#define lvlog(lv, msg, ...)               \
+    {                                     \
+        if (lv <= g_logLv)                \
+        {                                 \
+            logprintf(msg, ##__VA_ARGS__) \
+        }                                 \
     }
 
 /*! \brief String hash function using djb2 algorithm

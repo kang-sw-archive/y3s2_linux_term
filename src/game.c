@@ -1,14 +1,6 @@
-#include "core/program.h"
-#include "uEmbedded/fslist.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <linux/input.h>
-#include <signal.h>
+#include "game.h"
 #include <cairo.h>
 
-#define countof(v) (sizeof(v) / sizeof(*v))
 // #### DECLARATIONS ####
 // #### DECLARATIONS ####
 // #### DECLARATIONS ####
@@ -36,10 +28,6 @@
 // -- INPUT PROCEDURE
 // -- INPUT PROCEDURE
 // -- INPUT PROCEDURE
-#define EVENT_DEVICE "/dev/input/event0"
-#define Max_Input_Event 128
-#define MAX_ASYNC_INPUT_EVENT 256
-
 static void *InputProcedure(void *dev);
 
 // -- ALL TYPE DEFINITIONS
@@ -53,28 +41,6 @@ static void *InputProcedure(void *dev);
 // -- ALL TYPE DEFINITIONS
 // -- ALL TYPE DEFINITIONS
 // -- ALL TYPE DEFINITIONS
-enum CurrentGameState
-{
-    GAME_TITLE = 1,
-    GAME_RANKING,
-    GAME_OVER,
-    GAME_PLAY
-};
-
-enum TouchInputType
-{
-    TOUCH_DOWN,
-    TOUCH_UP,
-    TOUCH_MV,
-};
-
-typedef struct touchinput
-{
-    int16_t x, y;
-    int8_t type;
-    int8_t slot;
-} touchinput_t;
-
 // -- ALL STATIC DATA REQUIRED
 // -- ALL STATIC DATA REQUIRED
 // -- ALL STATIC DATA REQUIRED
@@ -84,35 +50,60 @@ typedef struct touchinput
 // -- ALL STATIC DATA REQUIRED
 // -- ALL STATIC DATA REQUIRED
 // --------------------------------------------------------------
-int GameState;
+int gGameState;
 
 // Input data
 
-extern bool g_bRun;
-pthread_t ghInputProcThr;
-touchinput_t gInputEventQueue[MAX_ASYNC_INPUT_EVENT];
-size_t gInputEventSubmitIdx;
-size_t gInputEventRecvIdx;
-extern UProgramInstance *g_pInst;
+static pthread_t ghInputProcThr;
+static touchinput_t gInputEventQueue[MAX_ASYNC_INPUT_EVENT];
+static size_t gInputEventSubmitIdx;
+static size_t gInputEventRecvIdx;
+static touchinput_t gTouchInput = {.slot = -1};
 
 // -- WIDGET OBJECT QUEUE
+static FObj gObjects[MAX_OBJ];
+static FWidget gWidgets[MAX_WIDGETS];
+static size_t gObjectTop;
+static size_t gWidgetTop;
 
 // -- Global Resource Handles
-cairo_surface_t *rsrcBackground;
+cairo_surface_t *gBackgroundSurface;
 UResource *rsrcDefaultFont;
 // --------------------------------------------------------------
 
 // Update methods
 void OnDestroyGameInstance();
+static void InitGameTitle(void);
+static void InitGamePlay(void);
+static void InitGameOver(void);
+static void InitGameRanking(void);
 static void UpdateOnGameTitle(float DeltaTime);
 static void UpdateOnGameRanking(float DeltaTime);
 static void UpdateOnGameOver(float DeltaTime);
 static void UpdateOnGamePlay(float DeltaTime);
 
 // Utility methods
-void EnqueueInputEvent(struct touchinput const *ev);
-size_t DequeueInputEvent(struct touchinput *ev, size_t max);
+static void EnqueueInputEvent(struct touchinput const *ev);
+static size_t DequeueInputEvent(struct touchinput *ev, size_t max);
 
+static inline FObj *NewObject()
+{
+    uassert(gObjectTop < MAX_OBJ);
+    return gObjects + gObjectTop++;
+}
+
+static inline FWidget *NewWidget()
+{
+    uassert(gWidgetTop < MAX_WIDGETS);
+    FWidget *ret = gWidgets + gWidgetTop++;
+    ret->Trigger = NULL;
+    return ret;
+}
+
+static inline void DeleteObject(FObj *b) { *b = gObjects[--gObjectTop]; }
+static inline void ClearAllWidgetObject() { gObjectTop = gWidgetTop = 0; }
+
+static UResource *LoadImagePath(char const *Path);
 // #### DEFINITIONS ####
 // #### DEFINITIONS ####
 // #### DEFINITIONS ####
@@ -138,15 +129,16 @@ size_t DequeueInputEvent(struct touchinput *ev, size_t max);
 // -- GAME UPDATE METHODS
 void OnInitGame()
 {
-    GameState = GAME_TITLE;
-
     // Initialize Input Device
     // Initialize input event queue
     size_t buffsz = MAX_ASYNC_INPUT_EVENT * (sizeof(touchinput_t) + FSLIST_NODE_SIZE);
 
     // Before create thread, initialize mutex first.
-    pthread_create(&ghInputProcThr, NULL, InputProcedure, EVENT_DEVICE);
+    pthread_create(&ghInputProcThr, NULL, InputProcedure, TOUCH_EVENT_DEVICE);
     lvlog(LOGLEVEL_INFO, "Successfully initialized input device.\n");
+
+    // Load Background Image
+    gBackgroundSurface = cairo_image_surface_create_from_png("../resource/image/background.png");
 
     // Load resources
     PInst_LoadResource(
@@ -158,6 +150,10 @@ void OnInitGame()
     rsrcDefaultFont = PInst_GetResource(g_pInst, hash_djb2("DefaultFont"));
     if (rsrcDefaultFont == NULL)
         lvlog(LOGLEVEL_ERROR, "Failed to load default font resource.\n");
+
+    lvlog(LOGLEVEL_INFO, "Initializing game session ... \n");
+
+    InitGameTitle();
 }
 
 void OnDestroyGameInstance()
@@ -167,8 +163,72 @@ void OnDestroyGameInstance()
 
 void OnUpdate(float DeltaTime)
 {
-    // Update Game Status
-    switch (GameState)
+    // -- Analyize all inputs then select valid input
+    for (touchinput_t t = {.slot = 0}; DequeueInputEvent(&t, 1);)
+    {
+        if (t.slot == -1)
+            continue;
+
+        if (t.slot == gTouchInput.slot)
+            switch (t.type)
+            {
+            case TOUCH_DOWN:
+            case TOUCH_MV:
+                gTouchInput = t;
+                break;
+            case TOUCH_UP:
+                gTouchInput.slot = -1;
+                break;
+            }
+        else if (gTouchInput.slot == -1)
+            switch (t.type)
+            {
+            case TOUCH_DOWN:
+                gTouchInput = t;
+                t.slot = -1;
+                break;
+            default:
+                break;
+            }
+    }
+
+    // -- Update all widgets
+    // All widgets will be drawn in layer 10
+    bool bTouchConsumed = false;
+    FTransform2 tr = FTransform2_Zero();
+    FWidget w;
+    for (size_t i = 0; i < gWidgetTop; i++)
+    {
+        w = gWidgets[i];
+
+        if (w.ImageDefault == NULL)
+        {
+            lvlog(LOGLEVEL_CRITICAL, "Widget default image must be specified.\n");
+            continue;
+        }
+
+        UResource *toDraw = w.ImageDefault;
+        if (!bTouchConsumed && VEC2_AABB_CHECK(w.Position, w.CollisionRange, gTouchInput.x, gTouchInput.y))
+        {
+            if (w.Trigger && gTouchInput.type == TOUCH_UP && w.Trigger(&w))
+                bTouchConsumed = true;
+            toDraw = w.ImageClicked != NULL ? w.ImageClicked : toDraw;
+        }
+
+        // Convert Transform
+        tr.P = PInst_ScreenToWorld(g_pInst, w.Position.x, w.Position.y);
+
+        // Render widget
+        PInst_RQueueImage(
+            g_pInst,
+            10,
+            &tr,
+            toDraw,
+            true);
+    }
+
+    // -- Update Game Specific Status
+    switch (gGameState)
     {
     case GAME_TITLE:
         UpdateOnGameTitle(DeltaTime);
@@ -192,7 +252,6 @@ static void UpdateOnGameTitle(float DeltaTime)
 {
     static bool bColorSet = false;
     static FColor color_rand[10];
-    touchinput_t input[128];
     if (bColorSet == false)
     {
         for (size_t i = 0; i < countof(color_rand); i++)
@@ -200,7 +259,9 @@ static void UpdateOnGameTitle(float DeltaTime)
         bColorSet = true;
     }
 
-    size_t num = DequeueInputEvent(input, countof(input));
+    touchinput_t in = gTouchInput;
+    if (in.slot < 0)
+        return;
 
     FTransform2 tr = FTransform2_Zero();
     tr.S = (FVec2float){32.0f, 32.0f};
@@ -210,24 +271,20 @@ static void UpdateOnGameTitle(float DeltaTime)
 
     // if (num > 0)
     // printf("---------------- NumEv : %d\n", num);
-    for (size_t i = 0; i < num; i++)
-    {
-        tr.P = PInst_ScreenToWorld(g_pInst, input[i].x, input[i].y);
 
-        // printf(
-        //     "\t %d --> (slot %d) [%d %d] -> [%f %f] \n", i,
-        //     input[i].slot,
-        //     input[i].x, input[i].y,
-        //     tr.P.x, tr.P.y);
-        sprintf(buff,
-                "%d --> (slot %d) [%d %d] -> [%f %f] ", i,
-                input[i].slot,
-                input[i].x, input[i].y,
-                tr.P.x, tr.P.y);
-        PInst_RQueueText(g_pInst, 0, &tr, rsrcDefaultFont, buff, color_rand + input[i].slot, true);
-        sprintf(buff, "hello, world!");
-    }
-    sprintf(buff, "hello, world!");
+    tr.P = PInst_ScreenToWorld(g_pInst, in.x, in.y);
+
+    // printf(
+    //     "\t %d --> (slot %d) [%d %d] -> [%f %f] \n", i,
+    //     in.slot,
+    //     in.x, in.y,
+    //     tr.P.x, tr.P.y);
+    sprintf(buff,
+            "%d --> (slot %d) [%d %d] -> [%f %f] ", 0,
+            in.slot,
+            in.x, in.y,
+            tr.P.x, tr.P.y);
+    PInst_RQueueText(g_pInst, 0, &tr, rsrcDefaultFont, buff, color_rand + in.slot, true);
 }
 
 static void UpdateOnGameRanking(float DeltaTime)
@@ -245,7 +302,7 @@ static void *InputProcedure(void *dev)
     int fd = open((char const *)dev, O_RDONLY);
     if (fd == -1)
     {
-        lvlog(LOGLEVEL_ERROR, "%s is not a vaild device\n", EVENT_DEVICE);
+        lvlog(LOGLEVEL_ERROR, "%s is not a vaild device\n", TOUCH_EVENT_DEVICE);
         g_bRun = false;
     }
 
@@ -427,11 +484,69 @@ size_t DequeueInputEvent(struct touchinput *ev, size_t max)
     size_t out = 0;
 
     for (;
-         out <= max && gInputEventRecvIdx != gInputEventSubmitIdx;
+         out < max && gInputEventRecvIdx != gInputEventSubmitIdx;
          ++out, gInputEventRecvIdx += idx_add[gInputEventRecvIdx == countof(gInputEventQueue) - 1])
     {
         *ev++ = gInputEventQueue[gInputEventRecvIdx];
     }
 
     return out;
+}
+
+static UResource *LoadImagePath(char const *Path)
+{
+    FHash hash = hash_djb2(Path);
+    EStatus v = PInst_LoadResource(
+        g_pInst,
+        RESOURCE_IMAGE,
+        hash,
+        Path,
+        LOADRESOURCE_IMAGE_DEFAULT);
+
+    if (v == STATUS_OK)
+    {
+        lvlog(LOGLEVEL_INFO, "Loaded image %s\n", Path);
+    }
+    else if (v == STATUS_RESOURCE_ALREADY_EXIST)
+    {
+    }
+    else
+    {
+        lvlog(LOGLEVEL_WARNING, "Failed to load image %s\n", Path);
+        return NULL;
+    }
+
+    UResource *ret = PInst_GetResource(g_pInst, hash);
+
+    if (ret == NULL)
+        lvlog(LOGLEVEL_CRITICAL, "Failed to find resource %s ... hash %d\n", Path, hash);
+
+    return ret;
+}
+
+static void InitGameTitle(void)
+{
+    gGameState = GAME_TITLE;
+
+    ClearAllWidgetObject();
+
+    FWidget *w = NewWidget();
+    w->CollisionRange.x = 100;
+    w->CollisionRange.y = 80;
+    w->Position.x = 400;
+    w->Position.y = 600;
+    w->ImageDefault = LoadImagePath("../resource/image/btn/botton_rectangle_standard.png");
+    w->ImageClicked = LoadImagePath("../resource/image/btn/botton_rectangle_push.png");
+}
+
+static void InitGamePlay(void)
+{
+}
+
+static void InitGameOver(void)
+{
+}
+
+static void InitGameRanking(void)
+{
 }
