@@ -18,7 +18,9 @@ ASSIGN_TYPEID(UProgramInstance, PInstTypeID);
 
 static int resource_eval_func(void const *veval, void const *velem)
 {
-    int64_t rmres = (int64_t) * ((FHash *)veval) - (int64_t)((struct Resource *)velem)->Hash;
+    int64_t a = (int64_t) * ((FHash *)veval);
+    int64_t b = (int64_t)((struct Resource *)velem)->Hash;
+    int64_t rmres = a - b;
     return rmres > 0 ? 1 : rmres < 0 ? -1 : 0;
 }
 
