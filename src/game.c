@@ -208,7 +208,12 @@ void OnUpdate(float DeltaTime)
         }
 
         UResource *toDraw = w.ImageDefault;
-        if (!bTouchConsumed && VEC2_AABB_CHECK(w.Position, w.CollisionRange, gTouchInput.x, gTouchInput.y))
+        bool bOnTouch = VEC2_AABB_CHECK(
+            VEC2_SUB(int, w.Position, VEC2_AMPL(int, w.CollisionRange, 0.5f)),
+            VEC2_ADD(int, w.Position, VEC2_AMPL(int, w.CollisionRange, 0.5f)),
+            gTouchInput.x,
+            gTouchInput.y);
+        if (gTouchInput.slot != -1 && !bTouchConsumed && bOnTouch)
         {
             if (w.Trigger && gTouchInput.type == TOUCH_UP && w.Trigger(&w))
                 bTouchConsumed = true;
@@ -531,8 +536,8 @@ static void InitGameTitle(void)
     ClearAllWidgetObject();
 
     FWidget *w = NewWidget();
-    w->CollisionRange.x = 100;
-    w->CollisionRange.y = 80;
+    w->CollisionRange.x = 600;
+    w->CollisionRange.y = 120;
     w->Position.x = 400;
     w->Position.y = 600;
     w->ImageDefault = LoadImagePath("../resource/image/btn/botton_rectangle_standard.png");
