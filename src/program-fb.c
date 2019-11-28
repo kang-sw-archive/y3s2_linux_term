@@ -68,6 +68,13 @@ void *Internal_PInst_InitFB(UProgramInstance *s, char const *fb)
 void Internal_PInst_DeinitFB(struct ProgramInstance *Inst, void *hFB)
 {
     program_cairo_wrapper_t *v = hFB;
+    // Erase screen
+    void *d = cairo_image_surface_get_data(v->screen);
+    uint32_t strd = cairo_image_surface_get_stride(v->screen);
+    uint32_t y = cairo_image_surface_get_height(v->screen);
+    memset(d, 0, strd * y);
+
+    // Release memory
     for (size_t i = 0; i < RENDERER_NUM_MAX_BUFFER; i++)
     {
         cairo_surface_destroy(v->backbuffer[i]);

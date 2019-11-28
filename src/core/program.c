@@ -146,6 +146,9 @@ struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init)
         inst->RenderStringPool[i] = malloc(Init->RenderStringPoolSize);
     }
 
+    // Renderer yield condition
+    inst->bEnableRendererYield = Init->bAllowRendererYield;
+
     // Initialize timer
     size_t timerBuffSz = TIMER_ELEM_SIZE * Init->NumMaxTimer;
     timer_init(&inst->Timer, malloc(timerBuffSz), timerBuffSz);
@@ -194,6 +197,11 @@ struct ProgramInstance *PInst_Create(struct ProgramInstInitStruct const *Init)
     return inst;
 }
 
+void PInst_SetRenderingLock(UProgramInstance *s, bool bLock)
+{
+    s->bRenderingLock = bLock;
+}
+
 static void *RenderThread(void *VPInst)
 {
     UProgramInstance *inst = VPInst;
@@ -217,7 +225,8 @@ static void *RenderThread(void *VPInst)
         // This is notified via switching active buffer index value.
         if (((volatile UProgramInstance *)inst)->ActiveBufferIndex == ActiveIdx)
         {
-            pthread_yield(NULL);
+            if (inst->bEnableRendererYield)
+                pthread_yield(NULL);
             continue;
         }
         inst->RendererStatus = RENDERER_BUSY;
@@ -260,6 +269,9 @@ EStatus PInst_UpdateTimer(struct ProgramInstance *PInst, float DeltaTime)
 
 EStatus PInst_Flip(struct ProgramInstance *s)
 {
+    if (s->bRenderingLock)
+        return RENDERER_LOCKED;
+
     if (s->RendererStatus != RENDERER_IDLE)
         return RENDERER_BUSY;
 
@@ -355,6 +367,9 @@ static FRenderEventArg *pinst_queue_render_event_arg(UProgramInstance *s, int32_
 
 EStatus PInst_RQueueImage(struct ProgramInstance *PInst, int32_t Layer, FTransform2 const *Tr, struct Resource *Image, bool bAbsolute)
 {
+    if (PInst->bRenderingLock)
+        return RENDERER_LOCKED;
+
     bool Result;
     FRenderEventArg *ev;
     ev = pinst_queue_render_event_arg(PInst, Layer, Tr, &Result, bAbsolute);
@@ -374,6 +389,9 @@ EStatus PInst_RQueueText(
     COLORREF rgba,
     bool bAbsolute)
 {
+    if (s->bRenderingLock)
+        return RENDERER_LOCKED;
+
     bool Result;
     FRenderEventArg *ev;
     ev = pinst_queue_render_event_arg(s, Layer, Tr, &Result, bAbsolute);

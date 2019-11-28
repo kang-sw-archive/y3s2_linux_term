@@ -36,6 +36,8 @@ struct ProgramInstInitStruct
     char const *FrameBufferDevFileName;
     //! Number of maximum timer nodes
     size_t NumMaxTimer;
+    //! If set true, rendering thread can yield on idling.
+    bool bAllowRendererYield;
 };
 
 static void PInst_InitializeInitStruct(struct ProgramInstInitStruct *v)
@@ -45,6 +47,7 @@ static void PInst_InitializeInitStruct(struct ProgramInstInitStruct *v)
     v->NumMaxResource = 0x1000;
     v->FrameBufferDevFileName = NULL;
     v->NumMaxTimer = 0x1000;
+    v->bAllowRendererYield = false;
 }
 
 /*! \brief Create new program instance.
@@ -136,6 +139,13 @@ float *PInst_AspectRatio(struct ProgramInstance *s);
 FVec2float PInst_ScreenToWorld(struct ProgramInstance *s, int x, int y);
 FVec2int PInst_WorldToScreen(struct ProgramInstance *s, FVec2float v);
 
+/*! \brief Set rendering lock for program instance
+    \param s 
+    \param bLock If set true, all rendering requests will be ignored and flipping is stopped until unlocked.
+    \return 
+ */
+void PInst_SetRenderingLock(UProgramInstance *s, bool bLock);
+
 //! Color descriptor for draw call
 typedef struct Color
 {
@@ -212,6 +222,7 @@ enum ERendererState
 {
     RENDERER_IDLE = 0,
     RENDERER_BUSY = 1,
+    RENDERER_LOCKED = 2,
     ERROR_RENDERER_INVALID = -1
 };
 

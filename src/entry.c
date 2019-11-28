@@ -22,7 +22,9 @@
 #include <time.h>
 #include <sys/time.h>
 
-#define DESIRED_DELTA_TIME (1.0 / 60.0)
+#define DESIRED_DELTA_TIME (1.0 / 120.0)
+#define RENDERING_PERIOD 5
+
 bool g_bRun = true;
 static double g_TimeInSeconds;
 UProgramInstance *g_pInst;
@@ -78,54 +80,24 @@ int main(int argc, char *argv[])
     gettimeofday(&tv, NULL);
     curtime = prev_tick = time_100usec_to_sec(time_in_100usec(&tv));
 
-    //~~  Test function  ~~
-    // FHash hash = hash_djb2("smpl");
-    // FHash hashfont = hash_djb2("font");
-    // EStatus res = PInst_LoadResource(program, RESOURCE_IMAGE, hash, "../resource/rsrc.png", LOADRESOURCE_IMAGE_DEFAULT);
-    // if (res != STATUS_OK)
-    // {
-    //     logprintf("Loading resource failed. %d \n", res);
-    //     return -1;
-    // }
-    // res = PInst_LoadResource(program, RESOURCE_FONT, hashfont, "serif", LOADRESOURCE_FLAG_FONT_BOLD);
-    // if (res != STATUS_OK)
-    // {
-    //     logprintf("Loading resource failed. %d \n", res);
-    //     return -1;
-    // }
-
-    // UResource *rsrc = PInst_GetResource(program, hash);
-    // UResource *font = PInst_GetResource(program, hashfont);
-    // if (rsrc == NULL || font == NULL)
-    // {
-    //     logprintf("Resource finding failed\n");
-    //     return -1;
-    // }
-
-    // FTransform2 trsample = FTransform2_Zero();
-    // FTransform2 camtr = FTransform2_Zero();
-
-    // // Instantiate Game State.
-    // // @todo.
-    // FTransform2 trtext = FTransform2_Zero();
-    // trtext.S = (FVec2float){32.f, 32.f};
-
-    // char buf[1024];
-    // ~~~~~~~~~~~~~~~ TEST
-
     void OnUpdate(float DeltaTime);
     void OnDestroyGameInstance();
     OnInitGame();
 
+    const size_t render_period_add[2] = {1, 1 - RENDERING_PERIOD};
+    size_t render_period_counter = 0;
+
     // Main program loop
     while (g_bRun)
     {
+        PInst_SetRenderingLock(g_pInst, render_period_counter != 0);
+        render_period_counter += render_period_add[render_period_counter == (RENDERING_PERIOD - 1)];
         // Wait until delta seconds
         for (; (delta = curtime - prev_tick) < DESIRED_DELTA_TIME;)
         {
             gettimeofday(&tv, NULL);
             curtime = time_100usec_to_sec(time_in_100usec(&tv));
-            pthread_yield(NULL);
+            // pthread_yield(NULL);
         }
         prev_tick = curtime;
         g_TimeInSeconds = curtime;
@@ -136,33 +108,16 @@ int main(int argc, char *argv[])
         // Update game state
         OnUpdate(delta);
 
-        // // ~~ TEST CODE ~~
-        // PInst_RQueueImage(program, 0, &trsample, rsrc, false);
-        // trsample.P.x += DESIRED_DELTA_TIME * 0.1;
-        // trsample.P.y += DESIRED_DELTA_TIME * 0.1;
-
-        // if (trsample.P.x > 0.5f)
-        // {
-        //     trsample.P.x = 0;
-        //     trsample.P.y = 0;
-        // }
-        // trsample.R += 0.5f;
-        // camtr.R += 5.f;
-
-        // FColor v = {1, 0, 0, 1};
-        // sprintf(buf, "Delta Time: %f\n", delta);
-        // PInst_RQueueText(program, 1, &trtext, font, buf, &v, true);
-
-        // PInst_SetCameraTransform(program, &camtr);
-        // // ~~~~~~~~~~~~~~~
-
         // Flip Buffer
-        while (g_bRun && PInst_Flip(program) != STATUS_OK)
+        EStatus flip_result;
+        while (g_bRun && (flip_result = PInst_Flip(program)) != STATUS_OK)
         {
-            pthread_yield(NULL);
+            if (flip_result == RENDERER_LOCKED)
+                break;
         }
 
         lvlog(LOGLEVEL_VERBOSE + 1000, "Update() called. Cur time is %f\n", curtime);
+        printf("Delta = %f\n", delta);
     }
     OnDestroyGameInstance();
     PInst_Destroy(program);

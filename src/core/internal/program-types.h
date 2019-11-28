@@ -52,6 +52,10 @@ struct ProgramInstance
     timer_logic_t Timer;
     size_t TotalTimeMs;
     double TotalTime;
+
+    // Lock rendering
+    bool bRenderingLock;
+    bool bEnableRendererYield;
 };
 
 struct Resource
