@@ -324,7 +324,7 @@ FVec2float PInst_ScreenToWorld(struct ProgramInstance *s, int x, int y)
 {
     program_cairo_wrapper_t *fb = s->hFB;
     float aspect = s->AspectRatio;
-    float xf = x / fb->w - 0.5f;
+    float xf = x / fb->h - 0.5 * aspect;
     float yf = y / fb->h - 0.5f;
 
     return (FVec2float){.x = xf, .y = yf};
@@ -335,7 +335,7 @@ FVec2int PInst_WorldToScreen(struct ProgramInstance *s, FVec2float v)
     program_cairo_wrapper_t *fb = s->hFB;
     float aspect = s->AspectRatio;
     FVec2int r;
-    r.x = (v.x + aspect * 0.5f) * fb->w;
+    r.x = (v.x + aspect * 0.5f) * fb->h;
     r.y = (v.y + 0.5f) * fb->h;
 
     return r;

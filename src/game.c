@@ -12,6 +12,7 @@ static void *InputProcedure(void *dev);
 // Indicates current game state.
 static void (*internal__update_game__)(float delta);
 static void (*internal__on_change_session__)();
+static void *internal__game_data;
 
 // Input data
 static pthread_t ghInputProcThr;
@@ -23,6 +24,7 @@ static touchinput_t gTouchInput = {.slot = -1};
 // -- WIDGET OBJECT QUEUE
 static FWidget gWidgets[MAX_WIDGETS];
 static size_t gWidgetTop;
+static bool bSessionChangedDuringObjectUpdate;
 
 // -- Global Resource Handles
 cairo_surface_t *gBackgroundSurface;
@@ -32,7 +34,7 @@ static UResource *rsrcLogo;
 static UResource *rsrcDigit[10];
 // --------------------------------------------------------------
 
-static void ChangeGameState(void (*UpdateMethod)(float), void (*OnChangeOut)());
+static void *ChangeGameState(void (*UpdateMethod)(float), void (*OnChangeOut)(), size_t);
 
 // Update methods
 void OnDestroyGameInstance();
@@ -138,6 +140,7 @@ void OnUpdate(float DeltaTime)
     // -- Update all widgets
     // All widgets will be drawn in layer 10
     bool bTouchConsumed = false;
+    bSessionChangedDuringObjectUpdate = false;
     FTransform2 tr = FTransform2_Zero();
     FWidget w;
     for (size_t i = 0; i < gWidgetTop; i++)
@@ -159,6 +162,8 @@ void OnUpdate(float DeltaTime)
         if (bOnTouch && bTouchUp && !bTouchConsumed && w.Trigger)
         {
             bTouchConsumed = w.Trigger(&w);
+            if (bSessionChangedDuringObjectUpdate)
+                break;
         }
 
         if (gTouchInput.slot != -1 && bOnTouch)
@@ -201,13 +206,28 @@ void OnUpdate(float DeltaTime)
     }
 }
 
-static void ChangeGameState(void (*UpdateMethod)(float), void (*OnChangeOut)())
+static inline void *GameData() { return internal__game_data; }
+
+static void *ChangeGameState(void (*UpdateMethod)(float), void (*OnChangeOut)(), size_t ModDataSize)
 {
     lvlog(LOGLEVEL_INFO, "Changing game state ... \n");
+    bSessionChangedDuringObjectUpdate = true;
+
     if (internal__on_change_session__)
         internal__on_change_session__();
+    if (internal__game_data)
+        free(internal__game_data);
+
     internal__on_change_session__ = OnChangeOut;
     internal__update_game__ = UpdateMethod;
+
+    void *ret = NULL;
+
+    if (ModDataSize)
+        ret = malloc(ModDataSize);
+
+    internal__game_data = ret;
+    return ret;
 }
 
 static void *InputProcedure(void *dev)
@@ -444,8 +464,19 @@ static UResource *LoadImagePath(char const *Path)
 #define PATH_IMG_RECT_BUTTON_UP "../resource/image/btn/botton_rectangle_standard.png"
 #define PATH_IMG_RECT_BUTTON_DN "../resource/image/btn/botton_rectangle_push.png"
 #define PATH_IMG_LOGO "../resource/image/text/TEXT_LOGO.png"
-
-#define PATH_WAV_BGM_TITLE "../resource/wav/bgm/bgm1.wav"
+#define PATH_IMG_PAUSE "../resource/image/btn/button_pause.png"
+#define PATH_DEGIT_DOT "../resource/image/num/Num_dot.png"
+#define PATH_PREFIX_FRUIT "../resource/image/fruit/Fruit_"
+#define PATH_IMG_APPLE PATH_PREFIX_FRUIT "apple.png"
+#define PATH_IMG_BANANA PATH_PREFIX_FRUIT "banana.png"
+#define PATH_IMG_BOMB PATH_PREFIX_FRUIT "bomb.png"
+#define PATH_IMG_ORANGE PATH_PREFIX_FRUIT "orange.png"
+#define PATH_IMG_PINEAPPLE PATH_PREFIX_FRUIT "pineapple.png"
+#define PATH_IMG_SHOES PATH_PREFIX_FRUIT "shoes.png"
+#define PATH_IMG_SOCKS PATH_PREFIX_FRUIT "socks.png"
+#define PATH_IMG_STRAWBERRY PATH_PREFIX_FRUIT "strawberry.png"
+#define PATH_IMG_TRASH PATH_PREFIX_FRUIT "trash.png"
+#define PATH_IMG_WATERMELON PATH_PREFIX_FRUIT "watermelon.png"
 
 static void RefindDigitImage()
 {
@@ -461,32 +492,29 @@ static void RefindDigitImage()
 
 static void LoadAllImage()
 {
-    // Load digits before start
-    static char const *WAVPATHS[] =
-        {
-            PATH_WAV_BGM_TITLE,
-        };
     static char const *IMGPATHS[] =
         {
-            PATH_IMG_RECT_BUTTON_DN,
             PATH_IMG_RECT_BUTTON_UP,
+            PATH_IMG_RECT_BUTTON_DN,
             PATH_IMG_LOGO,
+            PATH_IMG_PAUSE,
+            PATH_DEGIT_DOT,
+            PATH_PREFIX_FRUIT,
+            PATH_IMG_APPLE,
+            PATH_IMG_BANANA,
+            PATH_IMG_BOMB,
+            PATH_IMG_ORANGE,
+            PATH_IMG_PINEAPPLE,
+            PATH_IMG_SHOES,
+            PATH_IMG_SOCKS,
+            PATH_IMG_STRAWBERRY,
+            PATH_IMG_TRASH,
+            PATH_IMG_WATERMELON,
         };
 
     for (size_t i = 0; i < countof(IMGPATHS); i++)
     {
         LoadImagePath(IMGPATHS[i]);
-    }
-
-    for (size_t i = 0; i < countof(WAVPATHS); i++)
-    {
-        PInst_LoadResource(
-            g_pInst,
-            RESOURCE_WAV,
-            hash_djb2(WAVPATHS[i]),
-            WAVPATHS[i],
-            0,
-            NULL);
     }
 
     // Generate Digits
@@ -513,7 +541,7 @@ static bool Title_TriggerStart(FWidget *w)
 static void InitGameTitle(void)
 {
     lvlog(LOGLEVEL_INFO, "Initializing title screen ...\n");
-    ChangeGameState(NULL, NULL);
+    ChangeGameState(NULL, NULL, 0);
     ClearAllWidgetObject();
 
     FWidget *w;
@@ -554,8 +582,6 @@ static void InitGameTitle(void)
     w->ImageDefault = LoadImagePath(PATH_IMG_LOGO);
 
     // Play sound
-    UResource *wav = PInst_GetResource(g_pInst, hash_djb2(PATH_WAV_BGM_TITLE));
-    PInst_QueuePlayWave(g_pInst, wav, 1.0f);
 }
 
 //=====================================================================//
@@ -577,7 +603,7 @@ static void InitPreStartGame(void)
     lvlog(LOGLEVEL_INFO, "Initializing pre-start game .. \n");
     gPrestartData.counter = 3;
 
-    ChangeGameState(NULL, NULL);
+    ChangeGameState(NULL, NULL, 0);
     ClearAllWidgetObject();
 
     gPrestartData.disp = NewWidget();
@@ -586,6 +612,7 @@ static void InitPreStartGame(void)
     PInst_QueueTimer(g_pInst, PreStartGame_Timer, NULL, 1000);
 }
 
+static void InitGameplay(void);
 static void PreStartGame_Timer(void *v)
 {
     gPrestartData.disp->ImageDefault = rsrcDigit[--gPrestartData.counter];
@@ -593,8 +620,7 @@ static void PreStartGame_Timer(void *v)
 
     if (gPrestartData.counter == 0)
     {
-        // @todo. Init Gameplay Session
-        InitGameTitle();
+        InitGameplay();
     }
     else
     {
@@ -610,6 +636,7 @@ static void PreStartGame_Timer(void *v)
 
 typedef struct obj
 {
+    // In Game Coordinate
     FVec2float Position;
     FVec2float Velocity;
     UResource *Display;
@@ -623,3 +650,90 @@ enum
     FRUITTYPE_PARTICLE = 0,
     FRUITTYPE_BOMB = -1,
 };
+
+typedef struct gameplayinfo
+{
+    touchinput_t prevTouch;
+    float TimeLeft;
+    int Score;
+    float Interval;
+    float IntervalAcc;
+    float LifeSpan;
+
+    FWidget *wtime[3];
+    FWidget *wscore;
+    FWidget *wexit;
+    FWidget *wpause;
+
+    bool bPaused;
+
+    FObj objects[MAX_OBJ];
+    size_t objectTop;
+} FGameInfo;
+
+static void UpdateGame(float);
+static bool Trigger_Pause(FWidget *w)
+{
+    InitGameTitle();
+}
+
+static void InitGameplay(void)
+{
+    ClearAllWidgetObject();
+    FGameInfo *s = ChangeGameState(UpdateGame, NULL, sizeof(FGameInfo));
+    memset(s, 0, sizeof(FGameInfo));
+    s->TimeLeft = 60.0f;
+
+    FWidget *w;
+    // Digits xx.x
+    w = NewWidget();
+    w->Position = (FVec2int){.x = 280, 80};
+    s->wtime[2] = w;
+
+    w = NewWidget();
+    w->Position = (FVec2int){.x = 360, 80};
+    s->wtime[1] = w;
+
+    w = NewWidget();
+    w->Position = (FVec2int){.x = 440, 80};
+    w->ImageDefault = LoadImagePath(PATH_DEGIT_DOT);
+
+    w = NewWidget();
+    w->Position = (FVec2int){.x = 520, 80};
+    s->wtime[0] = w;
+
+    // Pause button
+    w = NewWidget();
+    w->ImageDefault = LoadImagePath(PATH_IMG_PAUSE);
+    w->Position = (FVec2int){.x = 150, .y = 50};
+    w->Size = (FVec2int){.x = 100, .y = 100};
+    w->Trigger = Trigger_Pause;
+
+    // Score board
+    w = NewWidget();
+    w->Position = (FVec2int){.x = 400, .y = 1200};
+    w->FontSz = 56;
+    s->Score = w;
+}
+
+static void UpdateGame(float delta)
+{
+    FGameInfo *s = GameData();
+
+    // Update touches
+    s->TimeLeft -= delta;
+
+    // Update scores
+
+    // Update objects
+
+    // Update digits
+    {
+        int left = (int)(s->TimeLeft * 10.f);
+        for (size_t i = 0; i < 3; ++i)
+        {
+            s->wtime[i]->ImageDefault = rsrcDigit[left % 10];
+            left /= 10;
+        }
+    }
+}
