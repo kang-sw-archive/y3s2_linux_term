@@ -61,5 +61,9 @@ typedef struct widget
     FVec2int CollisionRange;
     UResource *ImageDefault;
     UResource *ImageClicked;
+    const char *Text;
+    // Should not remove any other widgets inside of this function !
+    void (*Update)(struct widget *);
     bool (*Trigger)(struct widget *);
+    void *Data;
 } FWidget;

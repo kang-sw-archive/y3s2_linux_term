@@ -86,22 +86,24 @@ static void UpdateOnGamePlay(float DeltaTime);
 static void EnqueueInputEvent(struct touchinput const *ev);
 static size_t DequeueInputEvent(struct touchinput *ev, size_t max);
 
-static inline FObj *NewObject()
-{
-    uassert(gObjectTop < MAX_OBJ);
-    return gObjects + gObjectTop++;
-}
-
 static inline FWidget *NewWidget()
 {
     uassert(gWidgetTop < MAX_WIDGETS);
     FWidget *ret = gWidgets + gWidgetTop++;
     ret->Trigger = NULL;
+    ret->Text = NULL;
+    ret->Update = NULL;
     return ret;
 }
 
-static inline void DeleteObject(FObj *b) { *b = gObjects[--gObjectTop]; }
-static inline void ClearAllWidgetObject() { gObjectTop = gWidgetTop = 0; }
+static inline FWidget *DeleteWidget(FWidget *w)
+{
+    uassert(w - gWidgets < gWidgetTop);
+    uassert(w - gWidgets >= 0);
+    *w = gWidgets[--gWidgetTop];
+}
+
+static inline void ClearAllWidgetObject() { gWidgetTop = 0; }
 
 static UResource *LoadImagePath(char const *Path);
 // #### DEFINITIONS ####
@@ -206,6 +208,10 @@ void OnUpdate(float DeltaTime)
             lvlog(LOGLEVEL_CRITICAL, "Widget default image must be specified.\n");
             continue;
         }
+
+        // Update Widget.
+        if (w.Update)
+            w.Update(&w);
 
         UResource *toDraw = w.ImageDefault;
         bool bOnTouch = VEC2_AABB_CHECK(
@@ -539,6 +545,14 @@ static void InitGameTitle(void)
     w->CollisionRange.x = 600;
     w->CollisionRange.y = 120;
     w->Position.x = 400;
+    w->Position.y = 600;
+    w->ImageDefault = LoadImagePath("../resource/image/btn/botton_rectangle_standard.png");
+    w->ImageClicked = LoadImagePath("../resource/image/btn/botton_rectangle_push.png");
+
+    w = NewWidget();
+    w->CollisionRange.x = 600;
+    w->CollisionRange.y = 120;
+    w->Position.x = 600;
     w->Position.y = 600;
     w->ImageDefault = LoadImagePath("../resource/image/btn/botton_rectangle_standard.png");
     w->ImageClicked = LoadImagePath("../resource/image/btn/botton_rectangle_push.png");
