@@ -236,6 +236,12 @@ void OnUpdate(float DeltaTime)
             &tr,
             toDraw,
             true);
+
+        // If there's text ... render text
+        if (w.Text)
+            PInst_RQueueText(g_pInst, 11, &tr, rsrcDefaultFont,
+                             w.Text, &w.TextColor,
+                             true, PINST_TEXTFLAG_ALIGN_CENTER);
     }
 
     // -- Update Game Specific Status
@@ -295,7 +301,7 @@ static void UpdateOnGameTitle(float DeltaTime)
             in.slot,
             in.x, in.y,
             tr.P.x, tr.P.y);
-    PInst_RQueueText(g_pInst, 0, &tr, rsrcDefaultFont, buff, color_rand + in.slot, true);
+    PInst_RQueueText(g_pInst, 0, &tr, rsrcDefaultFont, buff, color_rand + in.slot, true, 0);
 }
 
 static void UpdateOnGameRanking(float DeltaTime)

@@ -387,7 +387,8 @@ EStatus PInst_RQueueText(
     struct Resource *Font,
     char const *String,
     COLORREF rgba,
-    bool bAbsolute)
+    bool bAbsolute,
+    uint32_t TextFlags)
 {
     if (s->bRenderingLock)
         return RENDERER_LOCKED;
@@ -412,9 +413,8 @@ EStatus PInst_RQueueText(
     // Setup data
     ev->Data.Text.rgba = *rgba;
     ev->Data.Text.Str = strref;
-    ev->Data.Text.StrLen = len;
     ev->Data.Text.Font = Font;
-
+    ev->Data.Text.Flags = TextFlags;
     ev->Type = ERET_TEXT;
 
     return Result ? STATUS_OK : ERROR_FAILED;

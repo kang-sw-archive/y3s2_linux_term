@@ -79,12 +79,11 @@ typedef enum
 /*! \brief Text rendering event data structure */
 struct RenderEventData_Text
 {
-    // Length of string
-    size_t StrLen;
     // Name of this argument will indicate the string address.
     char const *Str;
     UResource *Font;
     FColor rgba;
+    uint32_t Flags;
 };
 
 struct RenderEventData_Polylines

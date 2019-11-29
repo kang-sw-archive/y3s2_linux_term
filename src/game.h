@@ -62,6 +62,7 @@ typedef struct widget
     UResource *ImageDefault;
     UResource *ImageClicked;
     const char *Text;
+    FColor TextColor;
     // Should not remove any other widgets inside of this function !
     void (*Update)(struct widget *);
     bool (*Trigger)(struct widget *);

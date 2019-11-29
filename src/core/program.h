@@ -162,8 +162,7 @@ typedef struct Color const *COLORREF;
     \param Layer Objects with high layer values are drawn in front.
     \param Tr Transform
     \param Font Font resource data
-    \param String String to output. Will be copied.
-    \param 
+    \param String String to output. Will be copied. 
     \return Request result.
  */
 EStatus PInst_RQueueText(
@@ -172,10 +171,19 @@ EStatus PInst_RQueueText(
     FTransform2 const *Tr,
     struct Resource *Font,
     char const *String,
-    COLORREF rgba, bool bAbsolute);
+    COLORREF rgba, bool bAbsolute, uint32_t TextFlags);
+
+enum PINST_TEXTFLAG
+{
+    PINST_TEXTFLAG_DEFAULT = 0,
+    PINST_TEXTFLAG_ALIGN_LEFT = 0,
+    PINST_TEXTFLAG_ALIGN_CENTER = 0X01,
+    PINST_TEXTFLAG_ALIGN_RIGHT = 0X02,
+};
 
 //! Will not be implemented.
-EStatus PInst_RQueuePolygon(struct ProgramInstance *PInst, int32_t Layer, FTransform2 const *Tr, struct Resource *Vect, COLORREF rgba, bool bAbsolute);
+EStatus
+PInst_RQueuePolygon(struct ProgramInstance *PInst, int32_t Layer, FTransform2 const *Tr, struct Resource *Vect, COLORREF rgba, bool bAbsolute);
 
 /*! \brief Queue filled rectangle rendering
     \param Tr   Transform of ractangle.
