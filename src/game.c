@@ -21,14 +21,15 @@ static size_t gInputEventRecvIdx;
 static touchinput_t gTouchInput = {.slot = -1};
 
 // -- WIDGET OBJECT QUEUE
-static FObj gObjects[MAX_OBJ];
 static FWidget gWidgets[MAX_WIDGETS];
-static size_t gObjectTop;
 static size_t gWidgetTop;
 
 // -- Global Resource Handles
 cairo_surface_t *gBackgroundSurface;
-UResource *rsrcDefaultFont;
+static UResource *rsrcDefaultFont;
+#define FONT_HASH hash_djb2("DefaultFont")
+static UResource *rsrcLogo;
+static UResource *rsrcDigit[10];
 // --------------------------------------------------------------
 
 static void ChangeGameState(void (*UpdateMethod)(float), void (*OnChangeOut)());
@@ -44,11 +45,9 @@ static size_t DequeueInputEvent(struct touchinput *ev, size_t max);
 static inline FWidget *NewWidget()
 {
     uassert(gWidgetTop < MAX_WIDGETS);
-    FWidget *ret = gWidgets + gWidgetTop++;
-    ret->Trigger = NULL;
-    ret->Text = NULL;
-    ret->Update = NULL;
-    ret->TextDeltaOnTouch = (FVec2int){0, 0};
+    FWidget *ret = gWidgets + gWidgetTop;
+    memset(ret, 0, sizeof(*ret));
+    gWidgetTop++;
     return ret;
 }
 
@@ -65,6 +64,8 @@ static UResource *LoadImagePath(char const *Path);
 
 // #### DEFINITIONS ####
 // -- GAME UPDATE METHODS
+static void LoadAllImage();
+
 void OnInitGame()
 {
     // Initialize Input Device
@@ -76,21 +77,23 @@ void OnInitGame()
     lvlog(LOGLEVEL_INFO, "Successfully initialized input device.\n");
 
     // Load Background Image
-    gBackgroundSurface = cairo_image_surface_create_from_png("../resource/image/background.png");
+    gBackgroundSurface = cairo_image_surface_create_from_png("../resource/image/Background_image.png");
 
     // Load resources
     PInst_LoadResource(
         g_pInst,
         RESOURCE_FONT,
-        hash_djb2("DefaultFont"),
+        FONT_HASH,
         "Metal",
-        LOADRESOURCE_FLAG_FONT_BOLD);
-    rsrcDefaultFont = PInst_GetResource(g_pInst, hash_djb2("DefaultFont"));
+        LOADRESOURCE_FLAG_FONT_BOLD,
+        &rsrcDefaultFont);
+
     if (rsrcDefaultFont == NULL)
         lvlog(LOGLEVEL_ERROR, "Failed to load default font resource.\n");
 
     lvlog(LOGLEVEL_INFO, "Initializing game session ... \n");
 
+    LoadAllImage();
     InitGameTitle();
 }
 
@@ -148,8 +151,8 @@ void OnUpdate(float DeltaTime)
         UResource *toDraw = w.ImageDefault;
         bool bOnTouch =
             VEC2_AABB_CHECK(
-                VEC2_SUB(int, w.Position, VEC2_AMPL(int, w.CollisionRange, 0.5f)),
-                VEC2_ADD(int, w.Position, VEC2_AMPL(int, w.CollisionRange, 0.5f)),
+                VEC2_SUB(int, w.Position, VEC2_AMPL(int, w.Size, 0.5f)),
+                VEC2_ADD(int, w.Position, VEC2_AMPL(int, w.Size, 0.5f)),
                 gTouchInput.x,
                 gTouchInput.y);
 
@@ -200,6 +203,7 @@ void OnUpdate(float DeltaTime)
 
 static void ChangeGameState(void (*UpdateMethod)(float), void (*OnChangeOut)())
 {
+    lvlog(LOGLEVEL_INFO, "Changing game state ... \n");
     if (internal__on_change_session__)
         internal__on_change_session__();
     internal__on_change_session__ = OnChangeOut;
@@ -404,20 +408,17 @@ size_t DequeueInputEvent(struct touchinput *ev, size_t max)
 
 static UResource *LoadImagePath(char const *Path)
 {
-
+    UResource *ret;
     FHash hash = hash_djb2(Path);
     EStatus v = PInst_LoadResource(
         g_pInst,
         RESOURCE_IMAGE,
         hash,
         Path,
-        LOADRESOURCE_IMAGE_DEFAULT);
+        LOADRESOURCE_IMAGE_DEFAULT,
+        &ret);
 
-    if (v == STATUS_OK)
-    {
-        lvlog(LOGLEVEL_INFO, "Loaded image %s\n", Path);
-    }
-    else if (v == STATUS_RESOURCE_ALREADY_EXIST)
+    if (ret)
     {
     }
     else
@@ -426,32 +427,86 @@ static UResource *LoadImagePath(char const *Path)
         return NULL;
     }
 
-    UResource *ret = PInst_GetResource(g_pInst, hash);
-
-    if (ret == NULL)
-        lvlog(LOGLEVEL_CRITICAL, "Failed to find resource %s ... hash %d\n", Path, hash);
+    lvlog(LOGLEVEL_DISPLAY, "%s Image [%s] ... For hash %p ... Resource addr %p\n",
+          v == STATUS_OK ? "Loaded" : "Find",
+          Path, hash, ret);
 
     return ret;
 }
 
+//=====================================================================//
+//
+// GAME LOADING SESSION
+//
+//=====================================================================//
+#define PATH_RECT_BUTTON_UP "../resource/image/btn/botton_rectangle_standard.png"
+#define PATH_RECT_BUTTON_DN "../resource/image/btn/botton_rectangle_push.png"
+#define PATH_LOGO "../resource/image/text/TEXT_LOGO.png"
+
+static void RefindDigitImage()
+{
+    char buff[1024];
+    for (size_t i = 0; i < countof(rsrcDigit); i++)
+    {
+        sprintf(buff, "../resource/image/num/Num_%d.png", i);
+        rsrcDigit[i] = LoadImagePath(buff);
+        if (rsrcDigit[i] == NULL)
+            lvlog(LOGLEVEL_CRITICAL, "WARNING !!! DIGIT IS NOT LOADED CORRECTLY!!");
+    }
+}
+
+static void LoadAllImage()
+{
+    // Load digits before start
+    static char const *PATHS[] =
+        {
+            PATH_RECT_BUTTON_DN,
+            PATH_RECT_BUTTON_UP,
+            PATH_LOGO,
+        };
+
+    for (size_t i = 0; i < countof(PATHS); i++)
+    {
+        LoadImagePath(PATHS[i]);
+    }
+
+    // Generate Digits
+    RefindDigitImage(); // Generate
+
+    // Load invalidated references again
+    RefindDigitImage(); // Locate
+    rsrcDefaultFont = PInst_GetResource(g_pInst, FONT_HASH);
+}
+
+//=====================================================================//
+//
+// GAME TITLE SESSION
+//
+//=====================================================================//
+static void InitPreStartGame(void);
 static bool Title_TriggerStart(FWidget *w)
 {
-    logprintf("Button pressed.\n");
+    lvlog(LOGLEVEL_INFO, "Game start button pressed.\n");
+    InitPreStartGame();
     return true;
 }
 
 static void InitGameTitle(void)
 {
+    lvlog(LOGLEVEL_INFO, "Initializing title screen ...\n");
     ChangeGameState(NULL, NULL);
     ClearAllWidgetObject();
 
-    FWidget *w = NewWidget();
-    w->CollisionRange.x = 600;
-    w->CollisionRange.y = 120;
+    FWidget *w;
+
+    // Start button
+    w = NewWidget();
+    w->Size.x = 600;
+    w->Size.y = 120;
     w->Position.x = 400;
     w->Position.y = 600;
-    w->ImageDefault = LoadImagePath("../resource/image/btn/botton_rectangle_standard.png");
-    w->ImageClicked = LoadImagePath("../resource/image/btn/botton_rectangle_push.png");
+    w->ImageDefault = LoadImagePath(PATH_RECT_BUTTON_UP);
+    w->ImageClicked = LoadImagePath(PATH_RECT_BUTTON_DN);
     w->Trigger = Title_TriggerStart;
 
     w->Text = "Game Start";
@@ -459,16 +514,89 @@ static void InitGameTitle(void)
     w->FontSz = 64.f;
     w->TextDeltaOnTouch = (FVec2int){.x = 0, .y = 20};
 
+    // Rankings Button
     w = NewWidget();
-    w->CollisionRange.x = 600;
-    w->CollisionRange.y = 120;
+    w->Size.x = 600;
+    w->Size.y = 120;
     w->Position.x = 400;
     w->Position.y = 800;
-    w->ImageDefault = LoadImagePath("../resource/image/btn/botton_rectangle_standard.png");
-    w->ImageClicked = LoadImagePath("../resource/image/btn/botton_rectangle_push.png");
+    w->ImageDefault = LoadImagePath(PATH_RECT_BUTTON_UP);
+    w->ImageClicked = LoadImagePath(PATH_RECT_BUTTON_DN);
 
     w->Text = "Rankings";
     w->TextColor = (FColor){.A = 1, .R = 0.55, .G = 0.23, .B = 0.13};
     w->FontSz = 64.f;
     w->TextDeltaOnTouch = (FVec2int){.x = 0, .y = 20};
+
+    // Logo
+    w = NewWidget();
+    w->Position.x = 400;
+    w->Position.y = 200;
+    w->ImageDefault = LoadImagePath(PATH_LOGO);
 }
+
+//=====================================================================//
+//
+// PRE-STARTING GAME SESSION
+//
+//=====================================================================//
+typedef struct prestart_data
+{
+    int counter;
+    FWidget *disp;
+} prestart_data_t;
+static prestart_data_t gPrestartData;
+
+static void PreStartGame_Timer(void *);
+
+static void InitPreStartGame(void)
+{
+    lvlog(LOGLEVEL_INFO, "Initializing pre-start game .. \n");
+    gPrestartData.counter = 3;
+
+    ChangeGameState(NULL, NULL);
+    ClearAllWidgetObject();
+
+    gPrestartData.disp = NewWidget();
+    gPrestartData.disp->ImageDefault = rsrcDigit[gPrestartData.counter];
+    gPrestartData.disp->Position = (FVec2int){.x = 400, .y = 400};
+    PInst_QueueTimer(g_pInst, PreStartGame_Timer, NULL, 1000);
+}
+
+static void PreStartGame_Timer(void *v)
+{
+    gPrestartData.disp->ImageDefault = rsrcDigit[--gPrestartData.counter];
+    lvlog(LOGLEVEL_DISPLAY, "Prestart timer tick. left %d\n", gPrestartData.counter);
+
+    if (gPrestartData.counter == 0)
+    {
+        // @todo. Init Gameplay Session
+        InitGameTitle();
+    }
+    else
+    {
+        PInst_QueueTimer(g_pInst, PreStartGame_Timer, NULL, 1000);
+    }
+}
+
+//=====================================================================//
+//
+// GAMEPLAY SESSION
+//
+//=====================================================================//
+
+typedef struct obj
+{
+    FVec2float Position;
+    FVec2float Velocity;
+    UResource *Display;
+    // If type is positive value, it means point.
+    int Type;
+    float CollisionRange;
+} FObj;
+
+enum
+{
+    FRUITTYPE_PARTICLE = 0,
+    FRUITTYPE_BOMB = -1,
+};

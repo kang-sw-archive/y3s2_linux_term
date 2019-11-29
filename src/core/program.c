@@ -63,12 +63,6 @@ static struct Resource *pinst_resource_new(UProgramInstance *s, FHash hash)
 
     resource->Hash = hash;
 
-    uassert(pinst_resource_find(s, hash) == resource);
-    lvlog(LOGLEVEL_INFO, "Allocate new resource for hash %p on idx %d(%d)/%d\n\thas data currently: %p\n",
-          hash,
-          idx, (resource - s->arrResource),
-          s->NumResource - 1,
-          resource->data);
     return resource;
 }
 
@@ -365,6 +359,8 @@ static void pinst_renderer_translate_camera(FTransform2 *dst, FTransform2 const 
 
 timer_handle_t PInst_QueueTimer(struct ProgramInstance *PInst, void (*Callback)(void *), void *CallbackArg, size_t delay_ms)
 {
+    lvlog(LOGLEVEL_DISPLAY, "Queueing new timer for ms %d ... now: %d\n",
+          delay_ms, PInst->TotalTimeMs + delay_ms);
     return timer_add(&PInst->Timer, PInst->TotalTimeMs + delay_ms, Callback, CallbackArg);
 }
 

@@ -38,27 +38,11 @@ typedef struct touchinput
     int8_t slot;
 } touchinput_t;
 
-typedef struct obj
-{
-    FVec2float Position;
-    FVec2float Velocity;
-    UResource *Display;
-    // If type is positive value, it means point.
-    int Type;
-    float CollisionRange;
-} FObj;
-
-enum
-{
-    FRUITTYPE_PARTICLE = 0,
-    FRUITTYPE_BOMB = -1,
-};
-
 typedef struct widget
 {
     /*data*/
     FVec2int Position;
-    FVec2int CollisionRange;
+    FVec2int Size;
     UResource *ImageDefault;
     UResource *ImageClicked;
     const char *Text;
