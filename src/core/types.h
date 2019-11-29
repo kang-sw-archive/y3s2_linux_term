@@ -42,7 +42,7 @@ VEC2_TEMPLACE_TYPE(float);
 #define VEC2_DOT(type, a, b) ((a).x * (b).y + (a).y * (b).x)
 #define VEC2_NEG(type, a) ((FVec2##type){.x = -(a).x, .y = -(a).y})
 #define VEC2_AABB_CHECK(AA, BB, X, Y) ((AA).x <= (X) && (AA).y <= (Y) && (X) < (BB).x && (Y) < (BB).y)
-#define VEC2_AMPL(type, a, scalar) ((FVec2##type){.x = (a).x * (scalar), .y = (a).y * (scalar)})
+#define VEC2_SCALE(type, a, scalar) ((FVec2##type){.x = (a).x * (scalar), .y = (a).y * (scalar)})
 
 /*! \brief Rotate vector
     \param v Vector to rotate

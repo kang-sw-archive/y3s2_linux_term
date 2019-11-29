@@ -154,8 +154,8 @@ void OnUpdate(float DeltaTime)
         UResource *toDraw = w.ImageDefault;
         bool bOnTouch =
             VEC2_AABB_CHECK(
-                VEC2_SUB(int, w.Position, VEC2_AMPL(int, w.Size, 0.5f)),
-                VEC2_ADD(int, w.Position, VEC2_AMPL(int, w.Size, 0.5f)),
+                VEC2_SUB(int, w.Position, VEC2_SCALE(int, w.Size, 0.5f)),
+                VEC2_ADD(int, w.Position, VEC2_SCALE(int, w.Size, 0.5f)),
                 gTouchInput.x,
                 gTouchInput.y);
 
@@ -171,15 +171,15 @@ void OnUpdate(float DeltaTime)
             toDraw = w.ImageClicked != NULL ? w.ImageClicked : toDraw;
         }
 
+        // Convert Transform
+        tr.P = PInst_ScreenToWorld(g_pInst, w.Position.x, w.Position.y);
+
         if (toDraw)
         {
-            // Convert Transform
-            tr.P = PInst_ScreenToWorld(g_pInst, w.Position.x, w.Position.y);
-
             // Render widget
             tr.S = (FVec2float){0, 0};
             PInst_RQueueImage(
-                g_pInst, 10, &tr,
+                g_pInst, 1000000, &tr,
                 toDraw, true);
         }
 
@@ -194,7 +194,7 @@ void OnUpdate(float DeltaTime)
 
             tr.S = (FVec2float){w.FontSz, w.FontSz};
             PInst_RQueueText(
-                g_pInst, 11, &tr, rsrcDefaultFont,
+                g_pInst, 1000001, &tr, rsrcDefaultFont,
                 w.Text, &w.TextColor,
                 true, PINST_TEXTFLAG_HALIGN_CENTER | PINST_TEXTFLAG_VALIGN_CENTER);
         }
@@ -461,22 +461,40 @@ static UResource *LoadImagePath(char const *Path)
 //
 //=====================================================================//
 
+// ---------------------- OTHER    PATHS ------------------------------//
+#define PATH_RANKNINGS "../rankings.bin"
+
+// ---------------------- RESOURCE PATHS ------------------------------//
+#define PATH_PREFIX_FRUIT "../resource/image/fruit/Fruit_"
+#define PATH_PREFIX_EFFECT_SLASH "../resource/image/effect/slash_"
+#define PATH_SUFFIX_EFFECT_SLASH "_100.png"
+
 #define PATH_IMG_RECT_BUTTON_UP "../resource/image/btn/botton_rectangle_standard.png"
 #define PATH_IMG_RECT_BUTTON_DN "../resource/image/btn/botton_rectangle_push.png"
 #define PATH_IMG_LOGO "../resource/image/text/TEXT_LOGO.png"
 #define PATH_IMG_PAUSE "../resource/image/btn/button_pause.png"
 #define PATH_DEGIT_DOT "../resource/image/num/Num_dot.png"
-#define PATH_PREFIX_FRUIT "../resource/image/fruit/Fruit_"
-#define PATH_IMG_APPLE PATH_PREFIX_FRUIT "apple.png"
-#define PATH_IMG_BANANA PATH_PREFIX_FRUIT "banana.png"
-#define PATH_IMG_BOMB PATH_PREFIX_FRUIT "bomb.png"
-#define PATH_IMG_ORANGE PATH_PREFIX_FRUIT "orange.png"
-#define PATH_IMG_PINEAPPLE PATH_PREFIX_FRUIT "pineapple.png"
-#define PATH_IMG_SHOES PATH_PREFIX_FRUIT "shoes.png"
-#define PATH_IMG_SOCKS PATH_PREFIX_FRUIT "socks.png"
-#define PATH_IMG_STRAWBERRY PATH_PREFIX_FRUIT "strawberry.png"
-#define PATH_IMG_TRASH PATH_PREFIX_FRUIT "trash.png"
-#define PATH_IMG_WATERMELON PATH_PREFIX_FRUIT "watermelon.png"
+#define PATH_IMG_FRUIT_BANANA PATH_PREFIX_FRUIT "banana.png"
+#define PATH_IMG_FRUIT_APPLE PATH_PREFIX_FRUIT "apple.png"
+#define PATH_IMG_FRUIT_BOMB PATH_PREFIX_FRUIT "bomb.png"
+#define PATH_IMG_FRUIT_ORANGE PATH_PREFIX_FRUIT "orange.png"
+#define PATH_IMG_FRUIT_PINEAPPLE PATH_PREFIX_FRUIT "pineapple.png"
+#define PATH_IMG_FRUIT_SHOES PATH_PREFIX_FRUIT "shoes.png"
+#define PATH_IMG_FRUIT_SOCKS PATH_PREFIX_FRUIT "socks.png"
+#define PATH_IMG_FRUIT_STRAWBERRY PATH_PREFIX_FRUIT "strawberry.png"
+#define PATH_IMG_FRUIT_TRASH PATH_PREFIX_FRUIT "trash.png"
+#define PATH_IMG_FRUIT_WATERMELON PATH_PREFIX_FRUIT "watermelon.png"
+
+#define PATH_IMG_EFFECT_SLASH_01 PATH_PREFIX_EFFECT_SLASH "Ldiag" PATH_SUFFIX_EFFECT_SLASH
+#define PATH_IMG_EFFECT_SLASH_02 PATH_PREFIX_EFFECT_SLASH "lying" PATH_SUFFIX_EFFECT_SLASH
+#define PATH_IMG_EFFECT_SLASH_03 PATH_PREFIX_EFFECT_SLASH "Rdiag" PATH_SUFFIX_EFFECT_SLASH
+#define PATH_IMG_EFFECT_SLASH_04 PATH_PREFIX_EFFECT_SLASH "stading" PATH_SUFFIX_EFFECT_SLASH
+
+#define PATH_IMG_GAMEOVER "../resource/image/text/TEXT_GAMEOVER.png"
+#define PATH_IMG_EFFECT_BOMB "../resource/image/particles/5.png"
+
+#define PATH_IMG_KEY_BTN_UP "../resource/image/btn/round.png"
+#define PATH_IMG_KEY_BTN_DN "../resource/image/btn/round_dn.png"
 
 static void RefindDigitImage()
 {
@@ -499,17 +517,24 @@ static void LoadAllImage()
             PATH_IMG_LOGO,
             PATH_IMG_PAUSE,
             PATH_DEGIT_DOT,
-            PATH_PREFIX_FRUIT,
-            PATH_IMG_APPLE,
-            PATH_IMG_BANANA,
-            PATH_IMG_BOMB,
-            PATH_IMG_ORANGE,
-            PATH_IMG_PINEAPPLE,
-            PATH_IMG_SHOES,
-            PATH_IMG_SOCKS,
-            PATH_IMG_STRAWBERRY,
-            PATH_IMG_TRASH,
-            PATH_IMG_WATERMELON,
+            PATH_IMG_FRUIT_BANANA,
+            PATH_IMG_FRUIT_APPLE,
+            PATH_IMG_FRUIT_BOMB,
+            PATH_IMG_FRUIT_ORANGE,
+            PATH_IMG_FRUIT_PINEAPPLE,
+            PATH_IMG_FRUIT_SHOES,
+            PATH_IMG_FRUIT_SOCKS,
+            PATH_IMG_FRUIT_STRAWBERRY,
+            PATH_IMG_FRUIT_TRASH,
+            PATH_IMG_FRUIT_WATERMELON,
+            PATH_IMG_EFFECT_SLASH_01,
+            PATH_IMG_EFFECT_SLASH_02,
+            PATH_IMG_EFFECT_SLASH_03,
+            PATH_IMG_EFFECT_SLASH_04,
+            PATH_IMG_EFFECT_BOMB,
+            PATH_IMG_GAMEOVER,
+            PATH_IMG_KEY_BTN_UP,
+            PATH_IMG_KEY_BTN_DN,
         };
 
     for (size_t i = 0; i < countof(IMGPATHS); i++)
@@ -548,10 +573,10 @@ static void InitGameTitle(void)
 
     // Start button
     w = NewWidget();
+    w->Position.x = 400;
+    w->Position.y = 820;
     w->Size.x = 600;
     w->Size.y = 120;
-    w->Position.x = 400;
-    w->Position.y = 600;
     w->ImageDefault = LoadImagePath(PATH_IMG_RECT_BUTTON_UP);
     w->ImageClicked = LoadImagePath(PATH_IMG_RECT_BUTTON_DN);
     w->Trigger = Title_TriggerStart;
@@ -566,7 +591,7 @@ static void InitGameTitle(void)
     w->Size.x = 600;
     w->Size.y = 120;
     w->Position.x = 400;
-    w->Position.y = 800;
+    w->Position.y = 1000;
     w->ImageDefault = LoadImagePath(PATH_IMG_RECT_BUTTON_UP);
     w->ImageClicked = LoadImagePath(PATH_IMG_RECT_BUTTON_DN);
 
@@ -634,6 +659,39 @@ static void PreStartGame_Timer(void *v)
 //
 //=====================================================================//
 
+// CONSTANTS
+#define MIN_SLASH_VELOCITY_SQUARE (1.0f * 1.0f)
+#define GRAVITY_CONSTANT_Y 0.7f
+#define MAX_INTERVAL 1.0f
+
+enum
+{
+    INDEX_BOMB = 0,
+    INDEX_SOCKS = 1,
+    INDEX_SHOES = 2,
+    INDEX_TRASH = 3,
+    INDEX_FRUITS_BEGIN = 4,
+    INDEX_FRUITS_END = 10
+};
+
+static const char *gFruitPaths[] = {
+    PATH_IMG_FRUIT_BOMB,
+    PATH_IMG_FRUIT_SOCKS,
+    PATH_IMG_FRUIT_SHOES,
+    PATH_IMG_FRUIT_TRASH,
+    PATH_IMG_FRUIT_APPLE,
+    PATH_IMG_FRUIT_BANANA,
+    PATH_IMG_FRUIT_STRAWBERRY,
+    PATH_IMG_FRUIT_WATERMELON,
+    PATH_IMG_FRUIT_PINEAPPLE,
+    PATH_IMG_FRUIT_ORANGE,
+};
+
+static UResource *rsrcFruits[countof(gFruitPaths)];
+static UResource *rsrcSlashes[4];
+static UResource *rsrcParticles[12];
+static UResource *rsrcExplosion;
+
 typedef struct obj
 {
     // In Game Coordinate
@@ -642,7 +700,9 @@ typedef struct obj
     UResource *Display;
     // If type is positive value, it means point.
     int Type;
+    int Layer;
     float CollisionRange;
+    float Lifespan;
 } FObj;
 
 enum
@@ -653,12 +713,13 @@ enum
 
 typedef struct gameplayinfo
 {
-    touchinput_t prevTouch;
+    FVec2float prevTouch;
     float TimeLeft;
     int Score;
     float Interval;
     float IntervalAcc;
     float LifeSpan;
+    char buffScore[256];
 
     FWidget *wtime[3];
     FWidget *wscore;
@@ -675,6 +736,7 @@ static void UpdateGame(float);
 static bool Trigger_Pause(FWidget *w)
 {
     InitGameTitle();
+    return true;
 }
 
 static void InitGameplay(void)
@@ -687,53 +749,339 @@ static void InitGameplay(void)
     FWidget *w;
     // Digits xx.x
     w = NewWidget();
-    w->Position = (FVec2int){.x = 280, 80};
+    w->Position = (FVec2int){.x = 190, 110};
     s->wtime[2] = w;
 
     w = NewWidget();
-    w->Position = (FVec2int){.x = 360, 80};
+    w->Position = (FVec2int){.x = 330, 110};
     s->wtime[1] = w;
 
     w = NewWidget();
-    w->Position = (FVec2int){.x = 440, 80};
+    w->Position = (FVec2int){.x = 470, 110};
     w->ImageDefault = LoadImagePath(PATH_DEGIT_DOT);
 
     w = NewWidget();
-    w->Position = (FVec2int){.x = 520, 80};
+    w->Position = (FVec2int){.x = 610, 110};
     s->wtime[0] = w;
 
     // Pause button
     w = NewWidget();
     w->ImageDefault = LoadImagePath(PATH_IMG_PAUSE);
-    w->Position = (FVec2int){.x = 150, .y = 50};
-    w->Size = (FVec2int){.x = 100, .y = 100};
+    w->Position = (FVec2int){.x = 60, .y = 110};
+    w->Size = (FVec2int){.x = 120, .y = 120};
     w->Trigger = Trigger_Pause;
 
     // Score board
     w = NewWidget();
     w->Position = (FVec2int){.x = 400, .y = 1200};
     w->FontSz = 56;
-    s->Score = w;
+    w->Text = s->buffScore;
+    w->TextColor = (FColor){.A = 1, .R = 1, .G = 1, .B = 1};
+    s->wscore = w;
+    s->Score = 0;
+
+    // Load resources
+    for (size_t i = 0; i < countof(rsrcFruits); i++)
+        rsrcFruits[i] = LoadImagePath(gFruitPaths[i]);
+
+    rsrcSlashes[0] = LoadImagePath(PATH_IMG_EFFECT_SLASH_01);
+    rsrcSlashes[1] = LoadImagePath(PATH_IMG_EFFECT_SLASH_02);
+    rsrcSlashes[2] = LoadImagePath(PATH_IMG_EFFECT_SLASH_03);
+    rsrcSlashes[3] = LoadImagePath(PATH_IMG_EFFECT_SLASH_04);
+
+    rsrcExplosion = LoadImagePath(PATH_IMG_EFFECT_BOMB);
 }
 
+// Game utility
+/*! \brief
+    \param s 
+    \param Lifespan Specify negative value to disable lifespan
+    \param Pos 
+    \param Vel Initial speed
+    \param Type 
+    \param Disp 
+    \param Collision 
+    \return 
+ */
+static FObj *Game_SpawnObj(FGameInfo *s, int Layer, float Lifespan, FVec2float Pos, FVec2float Vel, int Type, UResource *Disp, float Collision)
+{
+    if (s->objectTop >= countof(s->objects))
+    {
+        lvlog(LOGLEVEL_WARNING, "Object overflow\n");
+        return NULL;
+    }
+    FObj *ret = &s->objects[s->objectTop++];
+    ret->Position = Pos;
+    ret->Layer = Layer;
+    ret->Velocity = Vel;
+    ret->Type = Type;
+    ret->Display = Disp;
+    ret->CollisionRange = Collision;
+    ret->Lifespan = Lifespan;
+    return ret;
+}
+
+static float randf(float scale)
+{
+    return rand() * scale * (1.f / RAND_MAX);
+}
+
+static void InitGameOverScreen(int Score);
+
+#define SLASH_EFFECT_VELOCITY_SCALE 0.33f
 static void UpdateGame(float delta)
 {
     FGameInfo *s = GameData();
 
-    // Update touches
-    s->TimeLeft -= delta;
-
-    // Update scores
-
-    // Update objects
-
-    // Update digits
+    // Update touch ...
+    // - Determine collisions
+    // - Update scores
+    // - Generate effects
+    if (gTouchInput.slot != -1)
     {
-        int left = (int)(s->TimeLeft * 10.f);
-        for (size_t i = 0; i < 3; ++i)
+        // Translate
+        FVec2float pos = PInst_ScreenToWorld(g_pInst, gTouchInput.x, gTouchInput.y);
+
+        // Calculate slash speed
+        float xd = (pos.x - s->prevTouch.x);
+        float yd = (pos.y - s->prevTouch.y);
+        float sqval = (xd * xd + yd * yd) / (delta * delta);
+        s->prevTouch = pos;
+
+        // Exclude first touch since it is overevaluated beacuse of invalid previous position
+        // Evaluate collision only when its speed is higher than threshold.
+        if (gTouchInput.type != TOUCH_DOWN && sqval > MIN_SLASH_VELOCITY_SQUARE)
         {
-            s->wtime[i]->ImageDefault = rsrcDigit[left % 10];
-            left /= 10;
+            // Spawn effect on touch location by 4 times.
+            for (size_t i = 0; i < 4; i++)
+            {
+                Game_SpawnObj(s, 15, 0.25f, pos,
+                              (FVec2float){(float)rand() / (RAND_MAX / SLASH_EFFECT_VELOCITY_SCALE) - (0.5f * SLASH_EFFECT_VELOCITY_SCALE),
+                                           (float)rand() / (RAND_MAX / SLASH_EFFECT_VELOCITY_SCALE) - (0.5f * SLASH_EFFECT_VELOCITY_SCALE)},
+                              // (FVec2float){0, 0},
+                              FRUITTYPE_PARTICLE, rsrcSlashes[rand() % countof(rsrcSlashes)],
+                              0);
+            }
+
+            // Check if there's any colliding object
+            for (size_t i = 0; i < s->objectTop; i++)
+            {
+                FObj *obj = s->objects + i;
+                if (obj->Type == 0)
+                    continue; // Ignore particle touch
+
+                FVec2float objpos = obj->Position;
+                xd = pos.x - objpos.x;
+                yd = pos.y - objpos.y;
+                float distsq = xd * xd + yd * yd;
+
+                if (distsq < (obj->CollisionRange * obj->CollisionRange))
+                {
+                    // @todo.
+                    // On touch any object
+                    if (obj->Type == FRUITTYPE_BOMB)
+                    {
+                        // Spawn bomb effect object
+                        Game_SpawnObj(s, 1000, -1, pos, (FVec2float){0, 0}, 0, rsrcExplosion, 0);
+                        InitGameOverScreen(s->Score);
+                        break;
+                    }
+
+                    // Destroy object.
+                    *obj = s->objects[--s->objectTop];
+                    --i;
+                }
+            }
         }
     }
+
+    // Randomly spawn object on every interval returns.
+    s->IntervalAcc += delta;
+    if (s->Interval < s->IntervalAcc)
+    {
+        s->IntervalAcc = 0;
+        // @todo. Add weight to spawn ratio
+        s->Interval = MAX_INTERVAL * powf(randf(1.0f), 3.1f);
+
+        int selection = rand() % 10;
+        FVec2float loc = (FVec2float){.x = (randf(1.4f) - 0.7f), .y = -0.7f};
+        FVec2float vel = VEC2_NEG(float, loc);
+        vel.x *= randf(2.5f) - 1.25f;
+
+        Game_SpawnObj(s,
+                      10, -1.0f,
+                      loc,
+                      vel,
+                      10, rsrcFruits[selection],
+                      0.1);
+    }
+
+    // Update objects
+    // - Transforms
+    // - Lifespan
+    float DeltaYVel = delta * GRAVITY_CONSTANT_Y;
+    for (size_t i = 0; i < s->objectTop; i++)
+    {
+        FObj *obj = s->objects + i;
+
+        if (obj->Lifespan > 0)
+        {
+            obj->Lifespan -= delta;
+            if (obj->Lifespan < 0)
+            {
+                // Destroy object when its lifespan is done.
+                *obj = s->objects[--s->objectTop];
+                --i;
+                continue;
+            }
+        }
+
+        obj->Velocity.y += DeltaYVel;
+        FVec2float DeltaVel = VEC2_SCALE(float, obj->Velocity, delta);
+        obj->Position = VEC2_ADD(float, obj->Position, DeltaVel);
+
+        // If object is out of boundary ...
+        // - Kill object
+        if (obj->Position.y > 0.8f)
+        {
+            *obj = s->objects[--s->objectTop];
+            --i;
+            continue;
+        }
+
+        // Draw object
+        if (obj->Display == NULL)
+        {
+            lvlog(LOGLEVEL_WARNING, "Object resource is not loaded correctly!\n");
+            continue;
+        }
+        PInst_RQueueImage(g_pInst, obj->Layer, &obj->Position, obj->Display, true);
+    }
+
+    // Update time
+    s->TimeLeft -= delta;
+    if (s->TimeLeft < 0)
+    {
+        // @todo. Game Over;
+        InitGameOverScreen(s->Score);
+    }
+
+    // Update fancies
+    sprintf(s->buffScore, "SCORE %15d", s->Score);
+    int left = (int)(s->TimeLeft * 10.f);
+    for (size_t i = 0; i < 3; ++i)
+    {
+        s->wtime[i]->ImageDefault = rsrcDigit[left % 10];
+        left /= 10;
+    }
+}
+
+//=====================================================================//
+//
+// GAME OVER SCREEN SESSION
+//
+//=====================================================================//
+struct ranking_value
+{
+    char name[128];
+    int score;
+} gRankings[10];
+
+static char gNameEntered[128];
+static int gNameCnt;
+static int gRecordScore;
+
+static bool Trigger_KeyTouch(FWidget *w)
+{
+    if (gNameCnt >= countof(gNameEntered) - 1)
+        return false;
+    gNameEntered[gNameCnt++] = w->Text[0];
+    gNameEntered[gNameCnt] = 0;
+    return true;
+}
+
+static bool Trigger_AcceptScore(FWidget *w)
+{
+
+    return true;
+}
+
+static void InitGameOverScreen(int Score)
+{
+    static const char *text[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", ".", "!", "?", ";", ":", "[", "]", "{", "}", "(", ")"};
+    static char ScoreBuff[128];
+    gRecordScore = Score;
+    gNameCnt = 0;
+    gNameEntered[0] = '\0';
+
+    // Only disable update
+    internal__update_game__ = NULL;
+    FWidget *w;
+
+    // Game over text.
+    w = NewWidget();
+    w->Position = (FVec2int){.x = 400, .y = 240};
+    w->ImageDefault = LoadImagePath(PATH_IMG_GAMEOVER);
+
+    // Spawn Keyboard
+    size_t KeyboardGap = 80;
+    size_t xp = 40;
+    size_t yp = 840;
+    UResource *rdn = LoadImagePath(PATH_IMG_KEY_BTN_DN);
+    UResource *rup = LoadImagePath(PATH_IMG_KEY_BTN_UP);
+
+    for (size_t i = 0; i < countof(text); i++)
+    {
+        w = NewWidget();
+        w->Position = (FVec2int){.x = xp, .y = yp};
+        w->Size = (FVec2int){.x = 70, .y = 70};
+        w->Text = text[i];
+        w->TextColor = (FColor){1, 0.6, 0.6, 0.6};
+        w->Trigger = Trigger_KeyTouch;
+        w->ImageClicked = rdn;
+        w->ImageDefault = rup;
+        w->FontSz = 32.0f;
+        xp += 80;
+
+        if (i % 10 == 9)
+        {
+            xp = 40;
+            yp += 80;
+        }
+    }
+
+    // Guide
+    w = NewWidget();
+    w->Position = (FVec2int){.x = 400, .y = 420};
+    w->TextColor = (FColor){.A = 1, .R = 0.88, .G = 0.9, .B = 0.9};
+    sprintf(ScoreBuff, "SCORE: %f", Score);
+    w->Text = ScoreBuff;
+    w->FontSz = 52.0f;
+
+    w = NewWidget();
+    w->Position = (FVec2int){.x = 400, .y = 504};
+    w->TextColor = (FColor){.A = 1, .R = 0.8, .G = 0.7, .B = 0.8};
+    w->Text = "_______________________";
+    w->FontSz = 52.0f;
+
+    // Entered text display
+    w = NewWidget();
+    w->Position = (FVec2int){.x = 400, .y = 500};
+    w->TextColor = (FColor){.A = 1, .R = 1, .G = 1, .B = 1};
+    w->Text = gNameEntered;
+    w->FontSz = 52.0f;
+
+    // Apply button
+    w = NewWidget();
+    w->Position = (FVec2int){.x = 400, .y = 620};
+    w->Size.x = 600;
+    w->Size.y = 120;
+    w->ImageDefault = LoadImagePath(PATH_IMG_RECT_BUTTON_UP);
+    w->ImageClicked = LoadImagePath(PATH_IMG_RECT_BUTTON_DN);
+    w->Trigger = Trigger_AcceptScore;
+
+    w->Text = "OK";
+    w->TextColor = (FColor){.A = 1, .R = 0.55, .G = 0.23, .B = 0.13};
+    w->FontSz = 64.f;
+    w->TextDeltaOnTouch = (FVec2int){.x = 0, .y = 20};
 }

@@ -11,8 +11,8 @@
 #define Max_Input_Event 128
 #define MAX_ASYNC_INPUT_EVENT 256
 #define countof(v) (sizeof(v) / sizeof(*v))
-#define MAX_WIDGETS 32
-#define MAX_OBJ 256
+#define MAX_WIDGETS 96
+#define MAX_OBJ 2048
 extern bool g_bRun;
 extern UProgramInstance *g_pInst;
 
