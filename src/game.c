@@ -2,58 +2,17 @@
 #include <cairo.h>
 
 // #### DECLARATIONS ####
-// #### DECLARATIONS ####
-// #### DECLARATIONS ####
-// #### DECLARATIONS ####
-// #### DECLARATIONS ####
-// #### DECLARATIONS ####
-// #### DECLARATIONS ####
-// #### DECLARATIONS ####
-// #### DECLARATIONS ####
-// #### DECLARATIONS ####
-// #### DECLARATIONS ####
-// #### DECLARATIONS ####
-// #### DECLARATIONS ####
-// #### DECLARATIONS ####
-// #### DECLARATIONS ####
-// #### DECLARATIONS ####
-// #### DECLARATIONS ####
-// #### DECLARATIONS ####
-// #### DECLARATIONS ####
-// -- INPUT PROCEDURE
-// -- INPUT PROCEDURE
-// -- INPUT PROCEDURE
-// -- INPUT PROCEDURE
-// -- INPUT PROCEDURE
-// -- INPUT PROCEDURE
-// -- INPUT PROCEDURE
 // -- INPUT PROCEDURE
 static void *InputProcedure(void *dev);
 
 // -- ALL TYPE DEFINITIONS
-// -- ALL TYPE DEFINITIONS
-// -- ALL TYPE DEFINITIONS
-// -- ALL TYPE DEFINITIONS
-// -- ALL TYPE DEFINITIONS
-// -- ALL TYPE DEFINITIONS
-// -- ALL TYPE DEFINITIONS
-// -- ALL TYPE DEFINITIONS
-// -- ALL TYPE DEFINITIONS
-// -- ALL TYPE DEFINITIONS
-// -- ALL TYPE DEFINITIONS
-// -- ALL STATIC DATA REQUIRED
-// -- ALL STATIC DATA REQUIRED
-// -- ALL STATIC DATA REQUIRED
-// -- ALL STATIC DATA REQUIRED
-// -- ALL STATIC DATA REQUIRED
-// -- ALL STATIC DATA REQUIRED
-// -- ALL STATIC DATA REQUIRED
 // -- ALL STATIC DATA REQUIRED
 // --------------------------------------------------------------
-int gGameState;
+
+// Indicates current game state.
+void (*gUpdateGame)(float delta);
 
 // Input data
-
 static pthread_t ghInputProcThr;
 static touchinput_t gInputEventQueue[MAX_ASYNC_INPUT_EVENT];
 static size_t gInputEventSubmitIdx;
@@ -77,10 +36,6 @@ static void InitGameTitle(void);
 static void InitGamePlay(void);
 static void InitGameOver(void);
 static void InitGameRanking(void);
-static void UpdateOnGameTitle(float DeltaTime);
-static void UpdateOnGameRanking(float DeltaTime);
-static void UpdateOnGameOver(float DeltaTime);
-static void UpdateOnGamePlay(float DeltaTime);
 
 // Utility methods
 static void EnqueueInputEvent(struct touchinput const *ev);
@@ -107,28 +62,8 @@ static inline FWidget *DeleteWidget(FWidget *w)
 static inline void ClearAllWidgetObject() { gWidgetTop = 0; }
 
 static UResource *LoadImagePath(char const *Path);
+
 // #### DEFINITIONS ####
-// #### DEFINITIONS ####
-// #### DEFINITIONS ####
-// #### DEFINITIONS ####
-// #### DEFINITIONS ####
-// #### DEFINITIONS ####
-// #### DEFINITIONS ####
-// #### DEFINITIONS ####
-// #### DEFINITIONS ####
-// #### DEFINITIONS ####
-// #### DEFINITIONS ####
-// #### DEFINITIONS ####
-// #### DEFINITIONS ####
-// #### DEFINITIONS ####
-// -- GAME UPDATE METHODS
-// -- GAME UPDATE METHODS
-// -- GAME UPDATE METHODS
-// -- GAME UPDATE METHODS
-// -- GAME UPDATE METHODS
-// -- GAME UPDATE METHODS
-// -- GAME UPDATE METHODS
-// -- GAME UPDATE METHODS
 // -- GAME UPDATE METHODS
 void OnInitGame()
 {
@@ -260,24 +195,9 @@ void OnUpdate(float DeltaTime)
         }
     }
 
-    // -- Update Game Specific Status
-    switch (gGameState)
+    if (gUpdateGame)
     {
-    case GAME_TITLE:
-        UpdateOnGameTitle(DeltaTime);
-        break;
-    case GAME_RANKING:
-        UpdateOnGameRanking(DeltaTime);
-        break;
-    case GAME_OVER:
-        UpdateOnGameOver(DeltaTime);
-        break;
-    case GAME_PLAY:
-        UpdateOnGamePlay(DeltaTime);
-        break;
-
-    default:
-        break;
+        gUpdateGame(DeltaTime);
     }
 }
 
@@ -528,6 +448,7 @@ size_t DequeueInputEvent(struct touchinput *ev, size_t max)
 
 static UResource *LoadImagePath(char const *Path)
 {
+
     FHash hash = hash_djb2(Path);
     EStatus v = PInst_LoadResource(
         g_pInst,
