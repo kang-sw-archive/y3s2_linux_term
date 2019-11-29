@@ -167,6 +167,7 @@ void OnDestroyGameInstance()
 void OnUpdate(float DeltaTime)
 {
     // -- Analyize all inputs then select valid input
+    bool bTouchUp = false;
     for (touchinput_t t = {.slot = 0}; DequeueInputEvent(&t, 1);)
     {
         if (t.slot == -1)
@@ -181,6 +182,7 @@ void OnUpdate(float DeltaTime)
                 break;
             case TOUCH_UP:
                 gTouchInput.slot = -1;
+                bTouchUp = true;
                 break;
             }
         else if (gTouchInput.slot == -1)
@@ -215,17 +217,20 @@ void OnUpdate(float DeltaTime)
             w.Update(&w);
 
         UResource *toDraw = w.ImageDefault;
-        bool bOnTouch = gTouchInput.slot != -1 &&
-                        VEC2_AABB_CHECK(
-                            VEC2_SUB(int, w.Position, VEC2_AMPL(int, w.CollisionRange, 0.5f)),
-                            VEC2_ADD(int, w.Position, VEC2_AMPL(int, w.CollisionRange, 0.5f)),
-                            gTouchInput.x,
-                            gTouchInput.y);
+        bool bOnTouch =
+            VEC2_AABB_CHECK(
+                VEC2_SUB(int, w.Position, VEC2_AMPL(int, w.CollisionRange, 0.5f)),
+                VEC2_ADD(int, w.Position, VEC2_AMPL(int, w.CollisionRange, 0.5f)),
+                gTouchInput.x,
+                gTouchInput.y);
 
-        if (!bTouchConsumed && bOnTouch)
+        if (bOnTouch && bTouchUp && !bTouchConsumed && w.Trigger)
         {
-            if (w.Trigger && gTouchInput.type == TOUCH_UP && w.Trigger(&w))
-                bTouchConsumed = true;
+            bTouchConsumed = w.Trigger(&w);
+        }
+
+        if (gTouchInput.slot != -1 && bOnTouch)
+        {
             toDraw = w.ImageClicked != NULL ? w.ImageClicked : toDraw;
         }
 
@@ -552,10 +557,14 @@ static UResource *LoadImagePath(char const *Path)
     return ret;
 }
 
+static bool Title_TriggerStart(FWidget *w)
+{
+    logprintf("Button pressed.\n");
+    return true;
+}
+
 static void InitGameTitle(void)
 {
-    gGameState = GAME_TITLE;
-
     ClearAllWidgetObject();
 
     FWidget *w = NewWidget();
@@ -569,6 +578,7 @@ static void InitGameTitle(void)
     w->TextColor = (FColor){.A = 1, .R = 0.55, .G = 0.23, .B = 0.13};
     w->FontSz = 64.f;
     w->TextDeltaOnTouch = (FVec2int){.x = 0, .y = 20};
+    w->Trigger = Title_TriggerStart;
 
     w = NewWidget();
     w->CollisionRange.x = 600;
