@@ -437,11 +437,15 @@ static UResource *LoadImagePath(char const *Path)
 //=====================================================================//
 //
 // GAME LOADING SESSION
+// PATH DECLARATIONS
 //
 //=====================================================================//
-#define PATH_RECT_BUTTON_UP "../resource/image/btn/botton_rectangle_standard.png"
-#define PATH_RECT_BUTTON_DN "../resource/image/btn/botton_rectangle_push.png"
-#define PATH_LOGO "../resource/image/text/TEXT_LOGO.png"
+
+#define PATH_IMG_RECT_BUTTON_UP "../resource/image/btn/botton_rectangle_standard.png"
+#define PATH_IMG_RECT_BUTTON_DN "../resource/image/btn/botton_rectangle_push.png"
+#define PATH_IMG_LOGO "../resource/image/text/TEXT_LOGO.png"
+
+#define PATH_WAV_BGM_TITLE "../resource/wav/bgm/bgm1.wav"
 
 static void RefindDigitImage()
 {
@@ -458,16 +462,31 @@ static void RefindDigitImage()
 static void LoadAllImage()
 {
     // Load digits before start
-    static char const *PATHS[] =
+    static char const *WAVPATHS[] =
         {
-            PATH_RECT_BUTTON_DN,
-            PATH_RECT_BUTTON_UP,
-            PATH_LOGO,
+            PATH_WAV_BGM_TITLE,
+        };
+    static char const *IMGPATHS[] =
+        {
+            PATH_IMG_RECT_BUTTON_DN,
+            PATH_IMG_RECT_BUTTON_UP,
+            PATH_IMG_LOGO,
         };
 
-    for (size_t i = 0; i < countof(PATHS); i++)
+    for (size_t i = 0; i < countof(IMGPATHS); i++)
     {
-        LoadImagePath(PATHS[i]);
+        LoadImagePath(IMGPATHS[i]);
+    }
+
+    for (size_t i = 0; i < countof(WAVPATHS); i++)
+    {
+        PInst_LoadResource(
+            g_pInst,
+            RESOURCE_WAV,
+            hash_djb2(WAVPATHS[i]),
+            WAVPATHS[i],
+            0,
+            NULL);
     }
 
     // Generate Digits
@@ -505,8 +524,8 @@ static void InitGameTitle(void)
     w->Size.y = 120;
     w->Position.x = 400;
     w->Position.y = 600;
-    w->ImageDefault = LoadImagePath(PATH_RECT_BUTTON_UP);
-    w->ImageClicked = LoadImagePath(PATH_RECT_BUTTON_DN);
+    w->ImageDefault = LoadImagePath(PATH_IMG_RECT_BUTTON_UP);
+    w->ImageClicked = LoadImagePath(PATH_IMG_RECT_BUTTON_DN);
     w->Trigger = Title_TriggerStart;
 
     w->Text = "Game Start";
@@ -520,8 +539,8 @@ static void InitGameTitle(void)
     w->Size.y = 120;
     w->Position.x = 400;
     w->Position.y = 800;
-    w->ImageDefault = LoadImagePath(PATH_RECT_BUTTON_UP);
-    w->ImageClicked = LoadImagePath(PATH_RECT_BUTTON_DN);
+    w->ImageDefault = LoadImagePath(PATH_IMG_RECT_BUTTON_UP);
+    w->ImageClicked = LoadImagePath(PATH_IMG_RECT_BUTTON_DN);
 
     w->Text = "Rankings";
     w->TextColor = (FColor){.A = 1, .R = 0.55, .G = 0.23, .B = 0.13};
@@ -532,7 +551,11 @@ static void InitGameTitle(void)
     w = NewWidget();
     w->Position.x = 400;
     w->Position.y = 200;
-    w->ImageDefault = LoadImagePath(PATH_LOGO);
+    w->ImageDefault = LoadImagePath(PATH_IMG_LOGO);
+
+    // Play sound
+    UResource *wav = PInst_GetResource(g_pInst, hash_djb2(PATH_WAV_BGM_TITLE));
+    PInst_QueuePlayWave(g_pInst, wav, 1.0f);
 }
 
 //=====================================================================//

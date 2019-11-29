@@ -26,6 +26,7 @@ aux_source_directory(src/core SRC_CORE)
 link_libraries(m)
 link_libraries(cairo)
 link_libraries(pthread)
+link_libraries(asound)
 
 # Executable
 add_executable(app ${SRC_APP} ${SRC_CORE} ${FBG_SRC} ${SRC_ARCH})

@@ -215,6 +215,9 @@ EStatus PInst_RQueueImage(struct ProgramInstance *PInst, int32_t Layer, FTransfo
  */
 EStatus PInst_QueuePlayWave(struct ProgramInstance *PInst, struct Resource *Wav, float Volume);
 
+// Should be implemented internally.
+EStatus PInst_StopAllSound(UProgramInstance *s);
+
 // For library implementations
 struct RenderEventArg;
 void *Internal_PInst_InitFB(struct ProgramInstance *Inst, char const *fb);
