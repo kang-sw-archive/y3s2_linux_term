@@ -1,4 +1,5 @@
 #include "game.h"
+#include "uEmbedded/algorithm.h"
 #include <cairo.h>
 
 // #### DECLARATIONS ####
@@ -484,15 +485,12 @@ static UResource *LoadImagePath(char const *Path)
 #define PATH_IMG_FRUIT_STRAWBERRY PATH_PREFIX_FRUIT "strawberry.png"
 #define PATH_IMG_FRUIT_TRASH PATH_PREFIX_FRUIT "trash.png"
 #define PATH_IMG_FRUIT_WATERMELON PATH_PREFIX_FRUIT "watermelon.png"
-
 #define PATH_IMG_EFFECT_SLASH_01 PATH_PREFIX_EFFECT_SLASH "Ldiag" PATH_SUFFIX_EFFECT_SLASH
 #define PATH_IMG_EFFECT_SLASH_02 PATH_PREFIX_EFFECT_SLASH "lying" PATH_SUFFIX_EFFECT_SLASH
 #define PATH_IMG_EFFECT_SLASH_03 PATH_PREFIX_EFFECT_SLASH "Rdiag" PATH_SUFFIX_EFFECT_SLASH
 #define PATH_IMG_EFFECT_SLASH_04 PATH_PREFIX_EFFECT_SLASH "stading" PATH_SUFFIX_EFFECT_SLASH
-
 #define PATH_IMG_GAMEOVER "../resource/image/text/TEXT_GAMEOVER.png"
 #define PATH_IMG_EFFECT_BOMB "../resource/image/particles/5.png"
-
 #define PATH_IMG_KEY_BTN_UP "../resource/image/btn/round.png"
 #define PATH_IMG_KEY_BTN_DN "../resource/image/btn/round_dn.png"
 
@@ -531,8 +529,8 @@ static void LoadAllImage()
             PATH_IMG_EFFECT_SLASH_02,
             PATH_IMG_EFFECT_SLASH_03,
             PATH_IMG_EFFECT_SLASH_04,
-            PATH_IMG_EFFECT_BOMB,
             PATH_IMG_GAMEOVER,
+            PATH_IMG_EFFECT_BOMB,
             PATH_IMG_KEY_BTN_UP,
             PATH_IMG_KEY_BTN_DN,
         };
@@ -556,10 +554,17 @@ static void LoadAllImage()
 //
 //=====================================================================//
 static void InitPreStartGame(void);
+static void InitRanking(void);
 static bool Title_TriggerStart(FWidget *w)
 {
     lvlog(LOGLEVEL_INFO, "Game start button pressed.\n");
     InitPreStartGame();
+    return true;
+}
+
+static bool Title_TriggerRanking(FWidget *w)
+{
+    InitRanking();
     return true;
 }
 
@@ -594,6 +599,7 @@ static void InitGameTitle(void)
     w->Position.y = 1000;
     w->ImageDefault = LoadImagePath(PATH_IMG_RECT_BUTTON_UP);
     w->ImageClicked = LoadImagePath(PATH_IMG_RECT_BUTTON_DN);
+    w->Trigger = Title_TriggerRanking;
 
     w->Text = "Rankings";
     w->TextColor = (FColor){.A = 1, .R = 0.55, .G = 0.23, .B = 0.13};
@@ -603,7 +609,7 @@ static void InitGameTitle(void)
     // Logo
     w = NewWidget();
     w->Position.x = 400;
-    w->Position.y = 200;
+    w->Position.y = 360;
     w->ImageDefault = LoadImagePath(PATH_IMG_LOGO);
 
     // Play sound
@@ -882,9 +888,16 @@ static void UpdateGame(float delta)
                     if (obj->Type == FRUITTYPE_BOMB)
                     {
                         // Spawn bomb effect object
-                        Game_SpawnObj(s, 1000, -1, pos, (FVec2float){0, 0}, 0, rsrcExplosion, 0);
                         InitGameOverScreen(s->Score);
-                        break;
+                        return;
+                    }
+                    else if (obj->Type < 0)
+                    {
+                        s->TimeLeft += obj->Type;
+                    }
+                    else
+                    {
+                        s->Score += obj->Type;
                     }
 
                     // Destroy object.
@@ -907,12 +920,27 @@ static void UpdateGame(float delta)
         FVec2float loc = (FVec2float){.x = (randf(1.4f) - 0.7f), .y = -0.7f};
         FVec2float vel = VEC2_NEG(float, loc);
         vel.x *= randf(2.5f) - 1.25f;
+        int typeval;
+
+        // Bomb
+        if (selection == INDEX_BOMB)
+        {
+            typeval = FRUITTYPE_BOMB;
+        }
+        else if (selection < INDEX_FRUITS_BEGIN) // Trashes
+        {
+            typeval = -5;
+        }
+        else // Fruits
+        {
+            typeval = selection * log2(s->Score + 2);
+        }
 
         Game_SpawnObj(s,
                       10, -1.0f,
                       loc,
                       vel,
-                      10, rsrcFruits[selection],
+                      typeval, rsrcFruits[selection],
                       0.1);
     }
 
@@ -960,11 +988,6 @@ static void UpdateGame(float delta)
 
     // Update time
     s->TimeLeft -= delta;
-    if (s->TimeLeft < 0)
-    {
-        // @todo. Game Over;
-        InitGameOverScreen(s->Score);
-    }
 
     // Update fancies
     sprintf(s->buffScore, "SCORE %15d", s->Score);
@@ -973,6 +996,13 @@ static void UpdateGame(float delta)
     {
         s->wtime[i]->ImageDefault = rsrcDigit[left % 10];
         left /= 10;
+    }
+
+    // If game is over ...
+    if (s->TimeLeft < 0)
+    {
+        // @todo. Game Over;
+        InitGameOverScreen(s->Score);
     }
 }
 
@@ -993,29 +1023,50 @@ static int gRecordScore;
 
 static bool Trigger_KeyTouch(FWidget *w)
 {
-    if (gNameCnt >= countof(gNameEntered) - 1)
-        return false;
-    gNameEntered[gNameCnt++] = w->Text[0];
+    if (w->Text[0] == '<')
+    {
+        if (gNameCnt == 0)
+            gNameEntered[--gNameCnt] = 0;
+        return true;
+    }
+
+    if (gNameCnt < countof(gNameEntered) - 1)
+        gNameEntered[gNameCnt++] = w->Text[0];
     gNameEntered[gNameCnt] = 0;
     return true;
 }
 
 static bool Trigger_AcceptScore(FWidget *w)
 {
+    // Find place to insert score
+    for (size_t i = 0; i < countof(gRankings); i++)
+    {
+        if (gRankings[i].score < gRecordScore)
+        {
+            struct ranking_value v;
+            strncpy(v.name, gNameEntered, countof(gRankings[i].name));
+            v.score = gRecordScore;
+            int numElem = countof(gRankings) - 1;
+            array_insert(gRankings, &v, i, sizeof(*gRankings), &numElem);
+            break;
+        }
+    }
 
+    InitGameTitle();
     return true;
 }
 
 static void InitGameOverScreen(int Score)
 {
-    static const char *text[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", ".", "!", "?", ";", ":", "[", "]", "{", "}", "(", ")"};
+    static const char *text[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", ".", "!", "?", ";", ":", "[", "]", "{", "}", "(", ")", "<"};
     static char ScoreBuff[128];
     gRecordScore = Score;
     gNameCnt = 0;
     gNameEntered[0] = '\0';
 
     // Only disable update
-    internal__update_game__ = NULL;
+    ChangeGameState(NULL, NULL, NULL);
+    ClearAllWidgetObject();
     FWidget *w;
 
     // Game over text.
@@ -1052,28 +1103,28 @@ static void InitGameOverScreen(int Score)
 
     // Guide
     w = NewWidget();
-    w->Position = (FVec2int){.x = 400, .y = 420};
+    w->Position = (FVec2int){.x = 400, .y = 520};
     w->TextColor = (FColor){.A = 1, .R = 0.88, .G = 0.9, .B = 0.9};
-    sprintf(ScoreBuff, "SCORE: %f", Score);
+    sprintf(ScoreBuff, "SCORE: %d", Score);
     w->Text = ScoreBuff;
     w->FontSz = 52.0f;
 
     w = NewWidget();
-    w->Position = (FVec2int){.x = 400, .y = 504};
+    w->Position = (FVec2int){.x = 400, .y = 604};
     w->TextColor = (FColor){.A = 1, .R = 0.8, .G = 0.7, .B = 0.8};
     w->Text = "_______________________";
     w->FontSz = 52.0f;
 
     // Entered text display
     w = NewWidget();
-    w->Position = (FVec2int){.x = 400, .y = 500};
+    w->Position = (FVec2int){.x = 400, .y = 600};
     w->TextColor = (FColor){.A = 1, .R = 1, .G = 1, .B = 1};
     w->Text = gNameEntered;
     w->FontSz = 52.0f;
 
     // Apply button
     w = NewWidget();
-    w->Position = (FVec2int){.x = 400, .y = 620};
+    w->Position = (FVec2int){.x = 400, .y = 690};
     w->Size.x = 600;
     w->Size.y = 120;
     w->ImageDefault = LoadImagePath(PATH_IMG_RECT_BUTTON_UP);
@@ -1085,3 +1136,9 @@ static void InitGameOverScreen(int Score)
     w->FontSz = 64.f;
     w->TextDeltaOnTouch = (FVec2int){.x = 0, .y = 20};
 }
+
+//=====================================================================//
+//
+// RANKING SESSION
+//
+//=====================================================================//
