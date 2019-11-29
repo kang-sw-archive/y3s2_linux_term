@@ -10,7 +10,8 @@ static void *InputProcedure(void *dev);
 // --------------------------------------------------------------
 
 // Indicates current game state.
-void (*gUpdateGame)(float delta);
+static void (*internal__update_game__)(float delta);
+static void (*internal__on_change_session__)();
 
 // Input data
 static pthread_t ghInputProcThr;
@@ -30,12 +31,11 @@ cairo_surface_t *gBackgroundSurface;
 UResource *rsrcDefaultFont;
 // --------------------------------------------------------------
 
+static void ChangeGameState(void (*UpdateMethod)(float), void (*OnChangeOut)());
+
 // Update methods
 void OnDestroyGameInstance();
 static void InitGameTitle(void);
-static void InitGamePlay(void);
-static void InitGameOver(void);
-static void InitGameRanking(void);
 
 // Utility methods
 static void EnqueueInputEvent(struct touchinput const *ev);
@@ -141,12 +141,6 @@ void OnUpdate(float DeltaTime)
     {
         w = gWidgets[i];
 
-        if (w.ImageDefault == NULL)
-        {
-            lvlog(LOGLEVEL_CRITICAL, "Widget default image must be specified.\n");
-            continue;
-        }
-
         // Update Widget.
         if (w.Update)
             w.Update(&w);
@@ -169,19 +163,22 @@ void OnUpdate(float DeltaTime)
             toDraw = w.ImageClicked != NULL ? w.ImageClicked : toDraw;
         }
 
-        // Convert Transform
-        tr.P = PInst_ScreenToWorld(g_pInst, w.Position.x, w.Position.y);
+        if (toDraw)
+        {
+            // Convert Transform
+            tr.P = PInst_ScreenToWorld(g_pInst, w.Position.x, w.Position.y);
 
-        // Render widget
-        tr.S = (FVec2float){0, 0};
-        PInst_RQueueImage(
-            g_pInst, 10, &tr,
-            toDraw, true);
+            // Render widget
+            tr.S = (FVec2float){0, 0};
+            PInst_RQueueImage(
+                g_pInst, 10, &tr,
+                toDraw, true);
+        }
 
-        // If there's text ... render text
         if (w.Text)
         {
-            if (bOnTouch)
+            // If pressed, calculate text delta location
+            if (gTouchInput.slot != -1 && bOnTouch)
             {
                 FVec2int np = VEC2_ADD(int, w.Position, w.TextDeltaOnTouch);
                 tr.P = PInst_ScreenToWorld(g_pInst, np.x, np.y);
@@ -195,59 +192,18 @@ void OnUpdate(float DeltaTime)
         }
     }
 
-    if (gUpdateGame)
+    if (internal__update_game__)
     {
-        gUpdateGame(DeltaTime);
+        internal__update_game__(DeltaTime);
     }
 }
 
-static void UpdateOnGameTitle(float DeltaTime)
+static void ChangeGameState(void (*UpdateMethod)(float), void (*OnChangeOut)())
 {
-    static bool bColorSet = false;
-    static FColor color_rand[10];
-    if (bColorSet == false)
-    {
-        for (size_t i = 0; i < countof(color_rand); i++)
-            color_rand[i] = (FColor){.A = 1, .R = 0, .G = rand() / (float)RAND_MAX, .B = rand() / (float)RAND_MAX};
-        bColorSet = true;
-    }
-
-    touchinput_t in = gTouchInput;
-    if (in.slot < 0)
-        return;
-
-    FTransform2 tr = FTransform2_Zero();
-    tr.S = (FVec2float){32.0f, 32.0f};
-
-    FColor C = {.A = 1, .R = 1, .G = 0, .B = 0};
-    char buff[1024];
-
-    // if (num > 0)
-    // printf("---------------- NumEv : %d\n", num);
-
-    tr.P = PInst_ScreenToWorld(g_pInst, in.x, in.y);
-
-    // printf(
-    //     "\t %d --> (slot %d) [%d %d] -> [%f %f] \n", i,
-    //     in.slot,
-    //     in.x, in.y,
-    //     tr.P.x, tr.P.y);
-    sprintf(buff,
-            "%d --> (slot %d) [%d %d] -> [%f %f] ", 0,
-            in.slot,
-            in.x, in.y,
-            tr.P.x, tr.P.y);
-    PInst_RQueueText(g_pInst, 0, &tr, rsrcDefaultFont, buff, color_rand + in.slot, true, 0);
-}
-
-static void UpdateOnGameRanking(float DeltaTime)
-{
-}
-static void UpdateOnGameOver(float DeltaTime)
-{
-}
-static void UpdateOnGamePlay(float DeltaTime)
-{
+    if (internal__on_change_session__)
+        internal__on_change_session__();
+    internal__on_change_session__ = OnChangeOut;
+    internal__update_game__ = UpdateMethod;
 }
 
 static void *InputProcedure(void *dev)
@@ -486,6 +442,7 @@ static bool Title_TriggerStart(FWidget *w)
 
 static void InitGameTitle(void)
 {
+    ChangeGameState(NULL, NULL);
     ClearAllWidgetObject();
 
     FWidget *w = NewWidget();
@@ -495,11 +452,12 @@ static void InitGameTitle(void)
     w->Position.y = 600;
     w->ImageDefault = LoadImagePath("../resource/image/btn/botton_rectangle_standard.png");
     w->ImageClicked = LoadImagePath("../resource/image/btn/botton_rectangle_push.png");
-    w->Text = "Hello";
+    w->Trigger = Title_TriggerStart;
+
+    w->Text = "Game Start";
     w->TextColor = (FColor){.A = 1, .R = 0.55, .G = 0.23, .B = 0.13};
     w->FontSz = 64.f;
     w->TextDeltaOnTouch = (FVec2int){.x = 0, .y = 20};
-    w->Trigger = Title_TriggerStart;
 
     w = NewWidget();
     w->CollisionRange.x = 600;
@@ -508,16 +466,9 @@ static void InitGameTitle(void)
     w->Position.y = 800;
     w->ImageDefault = LoadImagePath("../resource/image/btn/botton_rectangle_standard.png");
     w->ImageClicked = LoadImagePath("../resource/image/btn/botton_rectangle_push.png");
-}
 
-static void InitGamePlay(void)
-{
-}
-
-static void InitGameOver(void)
-{
-}
-
-static void InitGameRanking(void)
-{
+    w->Text = "Rankings";
+    w->TextColor = (FColor){.A = 1, .R = 0.55, .G = 0.23, .B = 0.13};
+    w->FontSz = 64.f;
+    w->TextDeltaOnTouch = (FVec2int){.x = 0, .y = 20};
 }
