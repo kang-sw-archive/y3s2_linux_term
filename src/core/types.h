@@ -34,6 +34,7 @@ VEC2_TEMPLACE_TYPE(int32_t);
 VEC2_TEMPLACE_TYPE(int64_t);
 VEC2_TEMPLACE_TYPE(float);
 
+#define VEC2_CAST(to, v) ((FVec2##type){.x = (v).x, .y = (v).y})
 #define VEC2_ADD(type, a, b) ((FVec2##type){.x = (a).x + (b).x, .y = (a).y + (b).y})
 #define VEC2_SUB(type, a, b) ((FVec2##type){.x = (a).x - (b).x, .y = (a).y - (b).y})
 #define VEC2_MUL(type, a, b) ((FVec2##type){.x = (a).x * (b).x, .y = (a).y * (b).y})

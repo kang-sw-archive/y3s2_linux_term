@@ -250,15 +250,33 @@ void Internal_PInst_Draw(void *hFB, struct RenderEventArg const *Arg, int Active
 
     case ERET_TEXT:
     {
-        cairo_move_to(cr, tr.P.x, tr.P.y);
-
-        cairo_font_face_t *font = Arg->Data.Text.Font->data;
+        // Select font
+        struct RenderEventData_Text p = Arg->Data.Text;
+        cairo_font_face_t *font = p.Font->data;
         cairo_set_font_face(cr, font);
-        FColor c = Arg->Data.Text.rgba;
+        FColor c = p.rgba;
         cairo_set_source_rgba(cr, c.R, c.G, c.B, c.A);
-        // cairo_set_source_rgba(cr, 1, 0, 0, 1);
-        // cairo_rotate(cr, tr.R);
         cairo_set_font_size(cr, (tr.S.x + tr.S.y) * .5f);
+
+#if defined(PINST_RENDER_ALLOW_ROTATION)
+        cairo_translate(...); // @todo.
+        cairo_rotate(cr, tr.R);
+#else
+        cairo_text_extents_t ext;
+        cairo_text_extents(cr, p.Str, &ext);
+        const bool bHC = ((bool)p.Flags & PINST_TEXTFLAG_HALIGN_CENTER);
+        const bool bHR = ((bool)p.Flags & PINST_TEXTFLAG_HALIGN_RIGHT);
+        const bool bVC = ((bool)p.Flags & PINST_TEXTFLAG_VALIGN_CENTER);
+        const bool bVR = ((bool)p.Flags & PINST_TEXTFLAG_VALIGN_DOWN);
+
+        float xadd = (ext.width * 0.5 + ext.x_bearing) * ((int)bHR - (int)bHC);
+        float yadd = (ext.height * 0.5 + ext.y_bearing) * ((int)bVR - (int)bVC);
+
+        tr.P.x += xadd;
+        tr.P.y += yadd;
+        cairo_move_to(cr, tr.P.x, tr.P.y);
+#endif
+
         cairo_show_text(cr, Arg->Data.Text.Str);
     }
     break;

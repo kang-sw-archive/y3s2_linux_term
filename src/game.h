@@ -63,6 +63,8 @@ typedef struct widget
     UResource *ImageClicked;
     const char *Text;
     FColor TextColor;
+    FVec2int TextDeltaOnTouch;
+    float FontSz;
     // Should not remove any other widgets inside of this function !
     void (*Update)(struct widget *);
     bool (*Trigger)(struct widget *);

@@ -117,7 +117,6 @@ int main(int argc, char *argv[])
         }
 
         lvlog(LOGLEVEL_VERBOSE + 1000, "Update() called. Cur time is %f\n", curtime);
-        printf("Delta = %f\n", delta);
     }
     OnDestroyGameInstance();
     PInst_Destroy(program);

@@ -93,6 +93,7 @@ static inline FWidget *NewWidget()
     ret->Trigger = NULL;
     ret->Text = NULL;
     ret->Update = NULL;
+    ret->TextDeltaOnTouch = (FVec2int){0, 0};
     return ret;
 }
 
@@ -147,8 +148,8 @@ void OnInitGame()
         g_pInst,
         RESOURCE_FONT,
         hash_djb2("DefaultFont"),
-        "Ubuntu Mono",
-        LOADRESOURCE_FLAG_FONT_DEFAULT);
+        "Metal",
+        LOADRESOURCE_FLAG_FONT_BOLD);
     rsrcDefaultFont = PInst_GetResource(g_pInst, hash_djb2("DefaultFont"));
     if (rsrcDefaultFont == NULL)
         lvlog(LOGLEVEL_ERROR, "Failed to load default font resource.\n");
@@ -214,12 +215,14 @@ void OnUpdate(float DeltaTime)
             w.Update(&w);
 
         UResource *toDraw = w.ImageDefault;
-        bool bOnTouch = VEC2_AABB_CHECK(
-            VEC2_SUB(int, w.Position, VEC2_AMPL(int, w.CollisionRange, 0.5f)),
-            VEC2_ADD(int, w.Position, VEC2_AMPL(int, w.CollisionRange, 0.5f)),
-            gTouchInput.x,
-            gTouchInput.y);
-        if (gTouchInput.slot != -1 && !bTouchConsumed && bOnTouch)
+        bool bOnTouch = gTouchInput.slot != -1 &&
+                        VEC2_AABB_CHECK(
+                            VEC2_SUB(int, w.Position, VEC2_AMPL(int, w.CollisionRange, 0.5f)),
+                            VEC2_ADD(int, w.Position, VEC2_AMPL(int, w.CollisionRange, 0.5f)),
+                            gTouchInput.x,
+                            gTouchInput.y);
+
+        if (!bTouchConsumed && bOnTouch)
         {
             if (w.Trigger && gTouchInput.type == TOUCH_UP && w.Trigger(&w))
                 bTouchConsumed = true;
@@ -230,18 +233,26 @@ void OnUpdate(float DeltaTime)
         tr.P = PInst_ScreenToWorld(g_pInst, w.Position.x, w.Position.y);
 
         // Render widget
+        tr.S = (FVec2float){0, 0};
         PInst_RQueueImage(
-            g_pInst,
-            10,
-            &tr,
-            toDraw,
-            true);
+            g_pInst, 10, &tr,
+            toDraw, true);
 
         // If there's text ... render text
         if (w.Text)
-            PInst_RQueueText(g_pInst, 11, &tr, rsrcDefaultFont,
-                             w.Text, &w.TextColor,
-                             true, PINST_TEXTFLAG_ALIGN_CENTER);
+        {
+            if (bOnTouch)
+            {
+                FVec2int np = VEC2_ADD(int, w.Position, w.TextDeltaOnTouch);
+                tr.P = PInst_ScreenToWorld(g_pInst, np.x, np.y);
+            }
+
+            tr.S = (FVec2float){w.FontSz, w.FontSz};
+            PInst_RQueueText(
+                g_pInst, 11, &tr, rsrcDefaultFont,
+                w.Text, &w.TextColor,
+                true, PINST_TEXTFLAG_HALIGN_CENTER | PINST_TEXTFLAG_VALIGN_CENTER);
+        }
     }
 
     // -- Update Game Specific Status
@@ -554,12 +565,16 @@ static void InitGameTitle(void)
     w->Position.y = 600;
     w->ImageDefault = LoadImagePath("../resource/image/btn/botton_rectangle_standard.png");
     w->ImageClicked = LoadImagePath("../resource/image/btn/botton_rectangle_push.png");
+    w->Text = "Hello";
+    w->TextColor = (FColor){.A = 1, .R = 0.55, .G = 0.23, .B = 0.13};
+    w->FontSz = 64.f;
+    w->TextDeltaOnTouch = (FVec2int){.x = 0, .y = 20};
 
     w = NewWidget();
     w->CollisionRange.x = 600;
     w->CollisionRange.y = 120;
-    w->Position.x = 600;
-    w->Position.y = 600;
+    w->Position.x = 400;
+    w->Position.y = 800;
     w->ImageDefault = LoadImagePath("../resource/image/btn/botton_rectangle_standard.png");
     w->ImageClicked = LoadImagePath("../resource/image/btn/botton_rectangle_push.png");
 }
