@@ -400,8 +400,8 @@ EStatus PInst_RQueueText(
     // Copy string.
     int active = s->ActiveBufferIndex;
     char *bf = s->RenderStringPool[active];
-    char const *strref = bf;
     size_t head = s->StringPoolHeadIndex[active];
+    char const *strref = bf + head;
     while (*String)
     {
         bf[head++] = *String++;
