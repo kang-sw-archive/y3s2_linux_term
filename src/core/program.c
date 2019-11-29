@@ -49,7 +49,10 @@ static struct Resource *pinst_resource_new(UProgramInstance *s, FHash hash)
 
     // If any resource with same hash already exists ...
     if (idx < s->NumResource && s->arrResource[idx].Hash == hash)
+    {
+        lvlog(LOGLEVEL_INFO, "Trying allocate duplicated element ... \n");
         return NULL;
+    }
 
     struct Resource *resource = array_insert(
         s->arrResource,
@@ -59,6 +62,13 @@ static struct Resource *pinst_resource_new(UProgramInstance *s, FHash hash)
         &s->NumResource);
 
     resource->Hash = hash;
+
+    uassert(pinst_resource_find(s, hash) == resource);
+    lvlog(LOGLEVEL_INFO, "Allocate new resource for hash %p on idx %d(%d)/%d\n\thas data currently: %p\n",
+          hash,
+          idx, (resource - s->arrResource),
+          s->NumResource - 1,
+          resource->data);
     return resource;
 }
 
@@ -72,13 +82,17 @@ void PInst_SetCameraTransform(struct ProgramInstance *s, FTransform2 const *v)
     s->PendingCameraTransform = *v;
 }
 
-EStatus PInst_LoadResource(struct ProgramInstance *PInst, EResourceType Type, FHash Hash, char const *Path, LOADRESOURCE_FLAG_T Flag)
+EStatus PInst_LoadResource(struct ProgramInstance *PInst, EResourceType Type, FHash Hash, char const *Path, LOADRESOURCE_FLAG_T Flag, UResource **out)
 {
-    UResource *rs;
+    UResource *rs = NULL;
+    EStatus result;
     rs = pinst_resource_find(PInst, Hash);
 
     if (rs)
-        return STATUS_RESOURCE_ALREADY_EXIST;
+    {
+        result = STATUS_RESOURCE_ALREADY_EXIST;
+        goto END;
+    }
 
     void *data;
     switch (Type)
@@ -99,12 +113,21 @@ EStatus PInst_LoadResource(struct ProgramInstance *PInst, EResourceType Type, FH
     }
 
     if (data == NULL)
-        return ERROR_INVALID_RESOURCE_PATH;
+    {
+        result = ERROR_INVALID_RESOURCE_PATH;
+        goto END;
+    }
 
     rs = pinst_resource_new(PInst, Hash);
+    uassert(rs);
     rs->Type = RESOURCE_IMAGE;
     rs->data = data;
-    return STATUS_OK;
+    lvlog(LOGLEVEL_DISPLAY, "Loading data %p for path %s ... \n", data, Path);
+    result = STATUS_OK;
+END:;
+    if (out)
+        *out = rs;
+    return result;
 }
 
 static struct Resource *pinst_resource_find(UProgramInstance *s, FHash hash)
