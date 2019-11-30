@@ -493,6 +493,7 @@ static UResource *LoadImagePath(char const *Path)
 #define PATH_IMG_EFFECT_BOMB "../resource/image/particles/5.png"
 #define PATH_IMG_KEY_BTN_UP "../resource/image/btn/round.png"
 #define PATH_IMG_KEY_BTN_DN "../resource/image/btn/round_dn.png"
+#define PATH_IMG_RANKINGS "../resource/image/text/TEXT_RANKINGS.png"
 
 static void RefindDigitImage()
 {
@@ -533,6 +534,7 @@ static void LoadAllImage()
             PATH_IMG_EFFECT_BOMB,
             PATH_IMG_KEY_BTN_UP,
             PATH_IMG_KEY_BTN_DN,
+            PATH_IMG_RANKINGS,
         };
 
     for (size_t i = 0; i < countof(IMGPATHS); i++)
@@ -898,6 +900,7 @@ static void UpdateGame(float delta)
                     else
                     {
                         s->Score += obj->Type;
+                        s->TimeLeft += 0.7f;
                     }
 
                     // Destroy object.
@@ -1025,7 +1028,7 @@ static bool Trigger_KeyTouch(FWidget *w)
 {
     if (w->Text[0] == '<')
     {
-        if (gNameCnt == 0)
+        if (gNameCnt != 0)
             gNameEntered[--gNameCnt] = 0;
         return true;
     }
@@ -1038,6 +1041,9 @@ static bool Trigger_KeyTouch(FWidget *w)
 
 static bool Trigger_AcceptScore(FWidget *w)
 {
+    if (gNameCnt == 0)
+        return false;
+
     // Find place to insert score
     for (size_t i = 0; i < countof(gRankings); i++)
     {
@@ -1052,6 +1058,13 @@ static bool Trigger_AcceptScore(FWidget *w)
         }
     }
 
+    // Save to rankings
+    FILE *fp = fopen(PATH_RANKNINGS, "wb");
+    lvlog(LOGLEVEL_INFO, "Successfully wrote to " PATH_RANKNINGS " file\n");
+    uassert(fp);
+    uassert(fwrite(gRankings, sizeof(gRankings), 1, fp) == 1);
+    fclose(fp);
+
     InitGameTitle();
     return true;
 }
@@ -1063,6 +1076,16 @@ static void InitGameOverScreen(int Score)
     gRecordScore = Score;
     gNameCnt = 0;
     gNameEntered[0] = '\0';
+
+    // Load Rankings
+    FILE *fp = fopen(PATH_RANKNINGS, "rb");
+    lvlog(LOGLEVEL_INFO, "Read rankings file result: %d\n", fp != NULL);
+    if (fp != NULL)
+    {
+        if (fread(gRankings, sizeof(gRankings), 1, fp) != 1)
+            memset(gRankings, 0, sizeof(gRankings));
+        fclose(fp);
+    }
 
     // Only disable update
     ChangeGameState(NULL, NULL, NULL);
@@ -1142,3 +1165,61 @@ static void InitGameOverScreen(int Score)
 // RANKING SESSION
 //
 //=====================================================================//
+
+static bool Ranking_TriggerOkay(FWidget *w)
+{
+    InitGameTitle();
+    return true;
+}
+
+static void InitRanking(void)
+{
+    static char strbuf[10][128];
+
+    ChangeGameState(NULL, NULL, 0);
+    ClearAllWidgetObject();
+
+    // Read rankings from file
+    FILE *fp = fopen(PATH_RANKNINGS, "rb");
+    if (fp)
+    {
+        if (fread(gRankings, sizeof(gRankings), 1, fp) != 1)
+            memset(gRankings, 0, sizeof(gRankings));
+        fclose(fp);
+    }
+
+    FWidget *w;
+
+    // Ranking text
+    w = NewWidget();
+    w->ImageDefault = LoadImagePath(PATH_IMG_RANKINGS);
+    w->Position = (FVec2int){.x = 400, .y = 175};
+
+    // Ranking values
+    for (size_t i = 0; i < countof(gRankings); i++)
+    {
+        struct ranking_value rv = gRankings[i];
+
+        w = NewWidget();
+        w->Position = (FVec2int){.x = 400, .y = 400 + i * 60};
+        sprintf(strbuf[i], "%-12s %12d", rv.name[0] == 0 ? " --- " : rv.name, rv.score);
+        w->Text = strbuf[i];
+        w->FontSz = 44.f;
+        w->TextColor = (FColor){.A = 1, .R = 1, .G = 1, .B = 1};
+    }
+
+    // Okay button
+    w = NewWidget();
+    w->Position.x = 400;
+    w->Position.y = 1150;
+    w->Size.x = 600;
+    w->Size.y = 120;
+    w->ImageDefault = LoadImagePath(PATH_IMG_RECT_BUTTON_UP);
+    w->ImageClicked = LoadImagePath(PATH_IMG_RECT_BUTTON_DN);
+    w->Trigger = Ranking_TriggerOkay;
+
+    w->Text = "Back to Title";
+    w->TextColor = (FColor){.A = 1, .R = 0.55, .G = 0.23, .B = 0.13};
+    w->FontSz = 64.f;
+    w->TextDeltaOnTouch = (FVec2int){.x = 0, .y = 20};
+}
